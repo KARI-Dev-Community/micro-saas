@@ -1,35 +1,22 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
+// Matcher excludes static assets and files with extensions.
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  const token = request.cookies.get("session")?.value;
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
+  let user: { sub?: string } | null = null;
+  if (token && process.env.SESSION_SECRET) {
+    try {
+      const { payload } = await jwtVerify(
+        token,
+        new TextEncoder().encode(process.env.SESSION_SECRET)
+      );
+      user = payload;
+    } catch {
+      user = null;
     }
-  );
-
-  // Refreshes the auth token if expired — required for Server Components
-  // to reliably read the session.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  }
 
   const isDashboardRoute =
     request.nextUrl.pathname.startsWith("/dashboard") ||
@@ -50,7 +37,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  return supabaseResponse;
+  return NextResponse.next({ request });
 }
 
 export const config = {

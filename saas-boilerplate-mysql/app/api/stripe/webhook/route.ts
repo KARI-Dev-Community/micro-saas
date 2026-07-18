@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import * as Sentry from "@sentry/nextjs";
-import { stripe } from "@/lib/stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getStripe } from "@/lib/stripe";
+import {
+  getProfileByStripeCustomerId,
+  upsertSubscription,
+} from "@/lib/profile";
 import { sendReceiptEmail } from "@/lib/email";
 
 // Stripe requires the raw request body to verify the webhook signature,
@@ -18,6 +21,7 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
 
   try {
+    const stripe = getStripe();
     event = stripe.webhooks.constructEvent(
       body,
       signature,
@@ -34,8 +38,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const admin = createAdminClient();
-
   try {
     switch (event.type) {
       // Fires for both new subscriptions and any change to an existing one
@@ -46,40 +48,30 @@ export async function POST(request: Request) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        const { data: profile } = await admin
-          .from("profiles")
-          .select("id")
-          .eq("stripe_customer_id", customerId)
-          .maybeSingle();
+        const profile = await getProfileByStripeCustomerId(customerId);
 
         if (profile) {
           const price = subscription.items.data[0]?.price;
-          await admin.from("subscriptions").upsert(
-            {
-              user_id: profile.id,
-              payment_provider: "stripe",
-              stripe_subscription_id: subscription.id,
-              stripe_price_id: price?.id,
-              status: subscription.status,
-              amount_cents: price?.unit_amount ?? null,
-              currency: price?.currency ?? "usd",
-              current_period_end: new Date(
-                subscription.current_period_end * 1000
-              ).toISOString(),
-            },
-            { onConflict: "user_id" }
-          );
+          await upsertSubscription({
+            user_id: profile.id,
+            payment_provider: "stripe",
+            stripe_subscription_id: subscription.id,
+            stripe_price_id: price?.id,
+            status: subscription.status,
+            amount_cents: price?.unit_amount ?? null,
+            currency: price?.currency ?? "usd",
+            current_period_end: new Date(
+              subscription.current_period_end * 1000
+            ),
+          });
 
           if (
             event.type === "customer.subscription.created" &&
             price?.unit_amount
           ) {
-            const { data: authUser } = await admin.auth.admin.getUserById(
-              profile.id
-            );
-            if (authUser?.user?.email) {
+            if (profile.email) {
               sendReceiptEmail(
-                authUser.user.email,
+                profile.email,
                 price.unit_amount,
                 price.currency
               ).catch((err) =>
@@ -90,15 +82,16 @@ export async function POST(request: Request) {
             }
           }
 
-          Sentry.logger.info("Stripe subscription synced", {
-            event: event.type,
-            userId: profile.id,
-            status: subscription.status,
+          Sentry.captureMessage("Stripe subscription synced", {
+            level: "info",
+            tags: { webhook: "stripe" },
+            extra: { event: event.type, userId: profile.id, status: subscription.status },
           });
         } else {
-          Sentry.logger.warn("Stripe webhook: no matching profile", {
-            customerId,
-            event: event.type,
+          Sentry.captureMessage("Stripe webhook: no matching profile", {
+            level: "warning",
+            tags: { webhook: "stripe" },
+            extra: { customerId, event: event.type },
           });
         }
         break;

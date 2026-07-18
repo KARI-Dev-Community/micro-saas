@@ -1,12 +1,13 @@
 # SaaS Boilerplate
 
-Next.js (App Router) + Supabase (auth + Postgres) + Stripe (subscriptions).
-Single-user, not multi-tenant — good starting point you can extend with a
-`teams` table later if you need B2B accounts.
+Next.js (App Router) + MySQL (self-hosted auth + data) + Stripe
+(subscriptions). Single-user, not multi-tenant — good starting point you
+can extend with a `teams` table later if you need B2B accounts.
 
 ## What's included
 
-- Email/password auth (Supabase), with session refresh in middleware
+- Email/password auth, self-hosted against MySQL (bcrypt + signed JWT
+  session cookie), with route protection in middleware
 - Protected `/dashboard` route — redirects to `/login` if signed out
 - Stripe Checkout for subscribing, and the Stripe customer portal for
   managing/cancelling
@@ -21,7 +22,7 @@ Single-user, not multi-tenant — good starting point you can extend with a
   logs key events in the payment webhooks
 - Rate limiting (Upstash Redis) on checkout/portal routes — no-ops
   automatically if you haven't set up Redis yet
-- Transactional email (Resend) — welcome email on confirmed signup,
+- Transactional email (Resend) — welcome email on signup,
   payment receipt on successful subscription — no-ops (just logs) if
   you haven't set up an API key yet
 - SEO basics — sitemap, robots.txt, Open Graph/Twitter card metadata
@@ -40,18 +41,19 @@ Single-user, not multi-tenant — good starting point you can extend with a
 npm install
 ```
 
-## 2. Set up Supabase
+## 2. Set up MySQL
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. In the SQL Editor, run everything in `supabase/schema.sql`.
-3. Go to Project Settings > API and copy:
-   - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
-   - `anon` `public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY` (keep this secret —
-     it bypasses Row Level Security)
-4. In Authentication > URL Configuration, add
-   `http://localhost:3000/auth/callback` as a redirect URL (and your
-   production URL later).
+1. Create a database (any MySQL 5.7+/8.x or MariaDB): `create database saas_boilerplate;`
+2. Load the schema: `mysql -u root -p saas_boilerplate < mysql/schema.sql`
+   (or paste `mysql/schema.sql` into your DB GUI's query editor). This
+   creates `profiles`, `subscriptions`, and `usage_counters`.
+3. Fill in the `DATABASE_*` and `SESSION_SECRET` values in `.env.local`
+   (see step 7). Generate a session secret with `openssl rand -base64 32`.
+
+Note: auth is self-hosted — there's no external auth provider to
+configure. Passwords are hashed with bcrypt; sessions are stateless
+signed JWTs in an httpOnly cookie, so signing out just clears the
+cookie.
 
 ## 3. Set up Stripe
 
@@ -200,9 +202,30 @@ Two separate decisions, both already configured with sensible defaults:
 
 ## 12. Run it
 
+The whole stack (Next.js frontend + MySQL) runs in Docker with one
+command. MySQL starts with the schema pre-loaded and the app waits for
+it to be healthy before booting.
+
 ```bash
-npm run dev
+cp .env.example .env        # set at least SESSION_SECRET (openssl rand -base64 32)
+docker compose up -d --build
 ```
+
+The app is then served at http://localhost:3000 and talks to MySQL over
+the internal compose network (host `mysql`). The compose file already
+wires `DATABASE_*` to the right values, so `.env` only needs
+`SESSION_SECRET` (and Stripe/Billplz keys when you're ready for billing).
+
+Commands:
+- `docker compose up -d` — start (after the first build)
+- `docker compose up -d --build` — rebuild the app image after code changes
+- `docker compose down` — stop and remove containers
+- `docker compose down -v` — also wipe the database volume (the schema in
+  `docker/mysql/init/01-schema.sql` only reloads on a fresh volume)
+
+Prefer running the app natively instead? Skip the `web` service and point
+`DATABASE_*` at your own MySQL (or the `mysql` service) after loading
+`mysql/schema.sql` manually (step 2 above), then `npm install && npm run dev`.
 
 Visit `http://localhost:3000`.
 
@@ -213,9 +236,9 @@ Once you've picked and validated an idea:
 1. Fill in `SPEC.md` — what you're building, MVP scope, data model,
    pricing.
 2. Open the repo in an AI coding agent (Claude Code, Cursor, etc.) — it
-   reads `AGENTS.md` automatically for codebase context (architecture
-   gotchas, which Supabase client to use where, Billplz's billing
-   limitation, and so on).
+    reads `AGENTS.md` automatically for codebase context (architecture
+    gotchas, session vs. data-access modules, Billplz's billing
+    limitation, and so on).
 3. Ask it to build one MVP feature at a time against `SPEC.md`, rather
    than the whole thing in one prompt.
 
@@ -229,5 +252,7 @@ mislead an agent more than no instructions at all.
 - If you need team accounts, add an `organizations` table and a join
   table linking users to orgs, then scope `subscriptions` to
   `organization_id` instead of `user_id`
-- Add social login providers in Supabase Authentication settings — no
-  code changes needed, the client already supports it
+- Add social login (Google, GitHub, …) by wiring an OAuth flow into
+  `lib/auth.ts` and adding buttons in `app/(auth)/*` — the rest of the
+  app only depends on the `session` cookie, so providers are an isolated
+  change.

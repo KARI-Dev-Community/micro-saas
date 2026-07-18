@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getAllSubscriptions } from "@/lib/profile";
 
 const CURRENCY_LABEL: Record<string, string> = {
   usd: "$",
@@ -11,16 +11,8 @@ function formatAmount(cents: number, currency: string) {
 }
 
 export default async function AdminPage() {
-  const admin = createAdminClient();
+  const all = await getAllSubscriptions();
 
-  const { data: subscriptions } = await admin
-    .from("subscriptions")
-    .select(
-      "user_id, payment_provider, status, amount_cents, currency, current_period_end, created_at"
-    )
-    .order("created_at", { ascending: false });
-
-  const all = subscriptions ?? [];
   const active = all.filter(
     (s) => s.status === "active" || s.status === "trialing"
   );

@@ -1,19 +1,14 @@
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/auth";
+import { getSubscriptionByUserId } from "@/lib/profile";
 import { CheckoutButton } from "@/components/checkout-button";
 import { ManageBillingButton } from "@/components/manage-billing-button";
 import { BillplzCheckoutButton } from "@/components/billplz-checkout-button";
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
+  if (!user) return null;
 
-  const { data: subscription } = await supabase
-    .from("subscriptions")
-    .select("status, current_period_end, payment_provider")
-    .eq("user_id", user!.id)
-    .maybeSingle();
+  const subscription = await getSubscriptionByUserId(user.id);
 
   const isActive =
     subscription?.status === "active" || subscription?.status === "trialing";

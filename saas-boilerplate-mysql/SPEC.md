@@ -47,10 +47,10 @@ the core workflow above.
 
 <!--
 What new tables/columns does this need beyond what's already in
-supabase/schema.sql (profiles, subscriptions, usage_counters)?
+mysql/schema.sql (profiles, subscriptions, usage_counters)?
 List table name, key columns, and relationships. The agent should
-add these to schema.sql in the same format as the existing tables,
-including RLS policies.
+add these to mysql/schema.sql in the same format as the existing
+tables (InnoDB, foreign keys back to profiles.id).
 -->
 
 ## 7. New routes/pages needed

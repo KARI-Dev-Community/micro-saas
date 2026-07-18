@@ -1,0 +1,80 @@
+# Local dev stack for saas-boilerplate-mysql (frontend + MySQL).
+#
+#   docker compose up -d --build   # build the app image and start everything
+#   docker compose up -d           # start (use after the first build)
+#   docker compose down            # stop and remove containers
+#   docker compose down -v         # also wipe the database volume
+#
+# The web app is served at http://localhost:3000. It talks to MySQL over the
+# internal compose network (host "mysql"), so DATABASE_HOST must be "mysql"
+# inside the container — the defaults below already set that.
+#
+# Before `up`, copy .env.example to .env and fill in at least:
+#   SESSION_SECRET            (openssl rand -base64 32)
+#   STRIPE_SECRET_KEY, STRIPE_PRICE_ID, ...   (optional for a bare local run)
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: saas-boilerplate-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: saas_boilerplate
+      MYSQL_USER: saas
+      MYSQL_PASSWORD: saas_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      # Seed the schema on first boot (only runs when the data volume is empty).
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+      # Persist the database across `docker compose down`.
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-psaas_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: saas-boilerplate-web
+    restart: unless-stopped
+    # Wait for MySQL to be healthy before starting the app.
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_HOST: mysql
+      DATABASE_PORT: "3306"
+      DATABASE_USER: saas
+      DATABASE_PASSWORD: saas_password
+      DATABASE_NAME: saas_boilerplate
+      DATABASE_SSL: "false"
+      # Falls back to this placeholder if SESSION_SECRET isn't set in .env.
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-env-file}
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
+      BILLPLZ_API_KEY: ${BILLPLZ_API_KEY:-}
+      BILLPLZ_X_SIGNATURE_KEY: ${BILLPLZ_X_SIGNATURE_KEY:-}
+      BILLPLZ_COLLECTION_ID: ${BILLPLZ_COLLECTION_ID:-}
+      BILLPLZ_PLAN_AMOUNT_CENTS: ${BILLPLZ_PLAN_AMOUNT_CENTS:-2900}
+      BILLPLZ_SANDBOX: ${BILLPLZ_SANDBOX:-true}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-you@example.com}
+      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+      SENTRY_ORG: ${SENTRY_ORG:-}
+      SENTRY_PROJECT: ${SENTRY_PROJECT:-}
+      SENTRY_AUTH_TOKEN: ${SENTRY_AUTH_TOKEN:-}
+      UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL:-}
+      UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-onboarding@resend.dev}
+
+volumes:
+  mysql_data:

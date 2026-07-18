@@ -9,10 +9,10 @@ export const metadata: Metadata = {
     default: "SaaS Boilerplate",
     template: "%s | SaaS Boilerplate",
   },
-  description: "Next.js + Supabase + Stripe starter",
+  description: "Next.js + MySQL + Stripe starter",
   openGraph: {
     title: "SaaS Boilerplate",
-    description: "Next.js + Supabase + Stripe starter",
+    description: "Next.js + MySQL + Stripe starter",
     url: siteUrl,
     siteName: "SaaS Boilerplate",
     type: "website",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "SaaS Boilerplate",
-    description: "Next.js + Supabase + Stripe starter",
+    description: "Next.js + MySQL + Stripe starter",
   },
   robots: {
     index: true,

@@ -3,11 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,18 +17,17 @@ export default function SignupPage() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${location.origin}/auth/callback`,
-      },
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     });
 
     setLoading(false);
 
-    if (error) {
-      setError(error.message);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Sign up failed");
       return;
     }
 
@@ -40,10 +37,14 @@ export default function SignupPage() {
   if (checkEmail) {
     return (
       <div className="max-w-sm mx-auto px-6 py-24 text-center">
-        <h1 className="text-2xl font-semibold">Check your email</h1>
+        <h1 className="text-2xl font-semibold">Account created</h1>
         <p className="mt-2 text-gray-600">
-          We sent a confirmation link to {email}. Click it to finish setting
-          up your account.
+          Your account for {email} is ready. You can now sign in.
+        </p>
+        <p className="mt-6">
+          <Link href="/login" className="text-brand font-medium">
+            Go to log in
+          </Link>
         </p>
       </div>
     );

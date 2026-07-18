@@ -3,6 +3,9 @@ const { withSentryConfig } = require("@sentry/nextjs");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Emit a minimal standalone server so the Docker image doesn't need the
+  // full node_modules tree at runtime.
+  output: "standalone",
 };
 
 module.exports = withSentryConfig(nextConfig, {

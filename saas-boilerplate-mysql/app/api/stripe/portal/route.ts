@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getStripe } from "@/lib/stripe";
+import { getSessionUser } from "@/lib/auth";
+import { getProfileById } from "@/lib/profile";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
 
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -17,13 +14,7 @@ export async function POST() {
   const rateLimitResponse = await checkRateLimit(user.id);
   if (rateLimitResponse) return rateLimitResponse;
 
-  const admin = createAdminClient();
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("stripe_customer_id")
-    .eq("id", user.id)
-    .maybeSingle();
-
+  const profile = await getProfileById(user.id);
   if (!profile?.stripe_customer_id) {
     return NextResponse.json(
       { error: "No billing account found" },
@@ -31,6 +22,7 @@ export async function POST() {
     );
   }
 
+  const stripe = getStripe();
   const portalSession = await stripe.billingPortal.sessions.create({
     customer: profile.stripe_customer_id,
     return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,

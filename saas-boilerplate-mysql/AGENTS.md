@@ -17,9 +17,9 @@ model.
 
 ## Stack
 
-Next.js 15 (App Router, TypeScript) · Supabase (Postgres + auth) ·
-Stripe + Billplz (billing) · Tailwind · Sentry · Upstash Redis (rate
-limiting) · Resend (email)
+Next.js 15 (App Router, TypeScript) · MySQL (data + self-hosted email/
+password auth) · Stripe + Billplz (billing) · Tailwind · Sentry ·
+Upstash Redis (rate limiting) · Resend (email)
 
 ## Commands
 
@@ -39,30 +39,35 @@ command once you do.
 - `app/` — routes. `(auth)/` = login/signup, `dashboard/` = protected
   user area, `admin/` = protected MRR dashboard, `api/` = route handlers
   (Stripe/Billplz webhooks and checkout, no other API routes exist yet)
-- `lib/` — all shared server logic: `supabase/` (three clients, see
-  below), `stripe.ts`, `billplz.ts`, `email.ts`, `rate-limit.ts`,
-  `usage.ts`
+- `lib/` — all shared server logic: `db.ts` (mysql2 connection pool),
+  `auth.ts` (self-hosted email/password sessions, server-only),
+  `profile.ts` (profiles + subscriptions data access, server-only),
+  `stripe.ts`, `billplz.ts`, `email.ts`, `rate-limit.ts`, `usage.ts`
 - `components/` — client components, mostly buttons that call the
   `api/` routes
-- `supabase/schema.sql` — the entire DB schema. Run manually in the
-  Supabase SQL editor; there's no migration tool wired up. If you add
-  tables/columns, add the SQL here too, not just in a migration file
-  elsewhere.
+- `mysql/schema.sql` — the entire DB schema. Run manually in your MySQL
+  DB (e.g. `mysql -u root -p your_db < mysql/schema.sql`); there's no
+  migration tool wired up. If you add tables/columns, add the SQL here
+  too, not just in a migration file elsewhere.
 - Root-level `sentry.*.config.ts`, `instrumentation.ts`,
   `instrumentation-client.ts` — **exact filenames required by
   Sentry/Next.js conventions. Don't rename or move them.**
 
 ## Architecture rules — read before touching auth, billing, or data access
 
-**Three Supabase clients exist for a reason — don't cross them:**
-- `lib/supabase/client.ts` — browser, respects RLS, use in Client
-  Components only
-- `lib/supabase/server.ts` — server, respects RLS, use in Server
-  Components/Route Handlers where a user session exists
-- `lib/supabase/admin.ts` — **service role key, bypasses RLS entirely.**
-  Server-only. Only use where there's no user session to scope to
-  (webhooks) or for admin-only reads (`/admin`). Never import this in
-  anything that runs client-side.
+**Auth is self-hosted, not Supabase.** `lib/auth.ts` issues a signed JWT
+(HS256, `SESSION_SECRET`) stored in an httpOnly `session` cookie. Don't
+mix the two auth models: session helpers live in `lib/auth.ts`, data
+access in `lib/profile.ts`, and both are server-only (`import
+"server-only"`).
+- `lib/auth.ts` — `getSessionUser()`, `requireSessionUser()`, `setSession()`,
+  `clearSession()`, `createUser()`, `getUserByEmail()`. Use these to read
+  the logged-in user from a Server Component / Route Handler. Never import
+  into a Client Component.
+- `lib/profile.ts` — profile + subscription reads/writes against MySQL.
+  No RLS equivalent exists in this codebase (MySQL has no row-level
+  security); every query runs with the app's DB credentials, so only call
+  these from server code. Don't introduce a third data-access module.
 
 **Billplz has no native auto-charging subscription.** The checkout
 route creates one Bill per billing cycle; the callback extends
@@ -100,21 +105,22 @@ comment in `lib/billplz.ts`. Field names arrive with bracket notation
 strip the brackets before verifying.
 
 **`/dashboard` and `/admin` are gated differently.** `middleware.ts`
-blocks both for unauthenticated users, but `/admin` has a second gate —
-an email allowlist (`ADMIN_EMAILS`) checked in `app/admin/layout.tsx`,
-not in middleware. If you add new protected routes, decide which
-pattern fits and match it — don't invent a third auth pattern.
+checks the `session` cookie and redirects both for unauthenticated
+users, but `/admin` has a second gate — an email allowlist
+(`ADMIN_EMAILS`) checked in `app/admin/layout.tsx`, not in middleware.
+If you add new protected routes, decide which pattern fits and match it
+— don't invent a third auth pattern.
 
 ## Security
 
-- Never expose `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`,
-  `BILLPLZ_API_KEY`, or `BILLPLZ_X_SIGNATURE_KEY` to client code —
-  they're server-only by convention (no `NEXT_PUBLIC_` prefix). If you
-  add a new secret, follow that naming convention.
-- Row Level Security is the primary access control on `profiles`,
-  `subscriptions`, and `usage_counters`. If you add a table with user
-  data, add RLS policies in the same SQL block — don't rely on
-  application-level checks alone.
+- Never expose `SESSION_SECRET`, `STRIPE_SECRET_KEY`, `BILLPLZ_API_KEY`,
+  or `BILLPLZ_X_SIGNATURE_KEY` to client code — they're server-only by
+  convention (no `NEXT_PUBLIC_` prefix). If you add a new secret, follow
+  that naming convention.
+- `lib/auth.ts` and `lib/profile.ts` are marked `server-only` and read
+  the DB directly (no RLS). Enforce access control in app code: only ever
+  query `profiles`/`subscriptions` scoped to the authenticated `user.id`;
+  don't trust a client-supplied id.
 - See `.env.example` for the full list of required/optional env vars.
 
 ## Extending to multi-tenant (if needed later)
@@ -124,14 +130,14 @@ table and a join table (`organization_members`), then re-point
 `subscriptions.user_id` to `organization_id` (billing should be
 per-org, not per-user). This touches the Stripe customer creation logic
 in `app/api/stripe/checkout/route.ts`, the Billplz reference field, and
-every RLS policy that currently checks `auth.uid() = user_id`. Plan
-this as one deliberate migration, not an incremental patch.
+every query in `lib/profile.ts` that currently filters by `user_id`.
+Plan this as one deliberate migration, not an incremental patch.
 
 ## Don't
 
 - Don't commit `.env.local` or real API keys anywhere in the repo.
-- Don't add a fourth Supabase client — the three above cover every
-  case.
+- Don't add a third data-access module — `lib/auth.ts` (sessions) and
+  `lib/profile.ts` (data) cover every case.
 - Don't change `sentry.server.config.ts` / `sentry.edge.config.ts` /
   `instrumentation-client.ts` filenames — Sentry's Next.js SDK expects
   these exact names at the project root.

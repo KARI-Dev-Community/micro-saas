@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { verifyBillplzSignature } from "@/lib/billplz";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { upsertSubscription } from "@/lib/profile";
 import { sendReceiptEmail } from "@/lib/email";
 
 // Billplz posts application/x-www-form-urlencoded with bracket-notation
@@ -26,22 +26,20 @@ export async function POST(request: Request) {
   }
 
   const paid = fields["billplz[paid]"] === "true";
-  const userId = fields["billplz[reference_1]"]; // set to auth user id at checkout
+  const userId = fields["billplz[reference_1]"]; // set to app user id at checkout
   const billId = fields["billplz[id]"];
   const amountCents = Number(fields["billplz[paid_amount]"] || fields["billplz[amount]"] || 0);
 
   if (!paid || !userId) {
-    Sentry.logger.info("Billplz callback: not a completed payment", {
-      billId,
-      paid,
-      hasUserId: Boolean(userId),
+    Sentry.captureMessage("Billplz callback: not a completed payment", {
+      level: "info",
+      tags: { webhook: "billplz" },
+      extra: { billId, paid, hasUserId: Boolean(userId) },
     });
     // Not a successful payment — nothing to record. Return 200 so
     // Billplz doesn't retry.
     return NextResponse.json({ received: true });
   }
-
-  const admin = createAdminClient();
 
   // Extend access by one month from now. If they still have time left on
   // a current period, this simple version doesn't stack — swap in your
@@ -50,23 +48,20 @@ export async function POST(request: Request) {
   newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
 
   try {
-    await admin.from("subscriptions").upsert(
-      {
-        user_id: userId,
-        payment_provider: "billplz",
-        billplz_bill_id: billId,
-        status: "active",
-        amount_cents: amountCents,
-        currency: "myr",
-        current_period_end: newPeriodEnd.toISOString(),
-      },
-      { onConflict: "user_id" }
-    );
+    await upsertSubscription({
+      user_id: userId,
+      payment_provider: "billplz",
+      billplz_bill_id: billId,
+      status: "active",
+      amount_cents: amountCents,
+      currency: "myr",
+      current_period_end: newPeriodEnd,
+    });
 
-    Sentry.logger.info("Billplz subscription synced", {
-      userId,
-      billId,
-      amountCents,
+    Sentry.captureMessage("Billplz subscription synced", {
+      level: "info",
+      tags: { webhook: "billplz" },
+      extra: { userId, billId, amountCents },
     });
 
     const email = fields["billplz[email]"];

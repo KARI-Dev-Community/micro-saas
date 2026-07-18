@@ -16,25 +16,26 @@ variant you want before running any commands.
 - **npm** ≥ 9 (tested on v11)
 
 ### Required to boot at all
-The app runs Supabase middleware on **every** request. Without these two
-values it crashes with a `500` before any route runs
-(`Error: Your project's URL and Key are required to create a Supabase client!`):
+The MySQL variant reads its DB connection settings and session secret
+from env vars. Without `DATABASE_HOST`/`DATABASE_NAME` and
+`SESSION_SECRET` set in `.env.local`, server routes that touch the
+database will throw. The Supabase variant instead needs its project URL
+and anon key (see that variant's notes).
+
+For the **MySQL variant**, put these in a `.env.local` file inside the
+variant folder:
 
 | Env var | Where to get it |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API |
+| `DATABASE_HOST` / `DATABASE_USER` / `DATABASE_PASSWORD` / `DATABASE_NAME` | your MySQL server |
+| `SESSION_SECRET` | `openssl rand -base64 32` |
 
-So the real prerequisite is **a Supabase project** (free tier is fine). Put
-these in a `.env.local` file inside the variant folder.
-
-### Required for auth/login to actually succeed
-- `SUPABASE_SERVICE_ROLE_KEY` — Supabase → Settings → API (server-only, secret)
-- Run **`supabase/schema.sql`** in the Supabase SQL editor. There is no
-  migration tool wired up, so tables like `profiles` / `subscriptions` won't
-  exist until you paste it in manually.
-- Add `http://localhost:3000/auth/callback` as a redirect URL in
-  Supabase → Auth settings.
+### Required for auth/login to actually succeed (MySQL variant)
+- Run **`mysql/schema.sql`** against your database. There is no
+  migration tool wired up, so tables like `profiles` / `subscriptions`
+  won't exist until you load it manually.
+- That's it — auth is self-hosted (bcrypt + a signed JWT cookie), so
+  there's no external auth provider to configure.
 
 ### Optional (safe to skip in dev — these silently no-op if unset)
 - **Resend** (`RESEND_API_KEY`, `EMAIL_FROM`) — welcome/receipt emails
@@ -56,12 +57,11 @@ cp .env.example .env.local     # then fill in the required values above
 npm run dev                    # dev server at http://localhost:3000
 ```
 
-### Minimum to run without 500s
+### Minimum to run without 500s (MySQL variant)
 1. Node + `npm install`
-2. A Supabase project
-3. `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. For auth to work: add `SUPABASE_SERVICE_ROLE_KEY`, run `supabase/schema.sql`,
-   and set the `/auth/callback` redirect URL
+2. A MySQL database (8.x or MariaDB)
+3. `.env.local` with `DATABASE_*` and `SESSION_SECRET`
+4. For auth to work: load `mysql/schema.sql` into your database
 
 ## Commands
 
