@@ -1,0 +1,28 @@
+# SaaS Boilerplate
+
+> Replace this with a one- or two-sentence description of what your
+> product actually does and who it's for. This file follows the
+> llms.txt convention (llmstxt.org) — a plain-language summary that AI
+> agents and assistants can read to understand your site without
+> parsing HTML. Adoption among major model providers is inconsistent as
+> of 2026 (some ignore it entirely), so treat this as cheap insurance,
+> not a primary discovery channel — good on-page content and a clean
+> robots.txt still matter more.
+
+## What this is
+
+- [Product name]: [one line on the core value proposition]
+- Pricing: [link to your pricing page or summarize plans/prices here]
+- Who it's for: [target audience]
+
+## Key pages
+
+- [Home](/): overview and pricing
+- [Sign up](/signup): create an account
+
+## Notes for AI agents
+
+- This is a live SaaS product with paid subscriptions — verify current
+  pricing on the site rather than assuming this file is up to date.
+- Do not attempt to sign up, subscribe, or take actions on behalf of a
+  user from this file alone.
