@@ -41,6 +41,20 @@ create table if not exists usage_counters (
   foreign key (user_id) references profiles(id) on delete cascade
 );
 
+-- Example Pro-gated feature: user-owned "projects". Free users are
+-- capped at FREE_PROJECT_LIMIT (enforced in app code via usage_counters),
+-- Pro users are unlimited. Swap this for whatever your real product's
+-- entities are.
+create table if not exists projects (
+  id char(36) primary key,           -- uuid v4, generated in app code
+  user_id char(36) not null,
+  name varchar(255) not null,
+  description text,
+  created_at datetime(3) default current_timestamp(3),
+  foreign key (user_id) references profiles(id) on delete cascade,
+  index idx_projects_user (user_id)
+);
+
 -- Atomically increments a usage counter. MySQL stored procedures can't
 -- return values directly, so lib/usage.ts calls this then runs a SELECT
 -- to read the updated count back.

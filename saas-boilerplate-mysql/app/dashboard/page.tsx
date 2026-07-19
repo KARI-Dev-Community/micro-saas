@@ -1,8 +1,12 @@
 import { getSessionUser } from "@/lib/auth";
 import { getSubscriptionByUserId } from "@/lib/profile";
+import { listProjectsByUserId } from "@/lib/projects";
 import { CheckoutButton } from "@/components/checkout-button";
 import { ManageBillingButton } from "@/components/manage-billing-button";
 import { BillplzCheckoutButton } from "@/components/billplz-checkout-button";
+import { ProjectsPanel } from "@/components/projects-panel";
+
+const FREE_PROJECT_LIMIT = Number(process.env.FREE_PROJECT_LIMIT ?? 3);
 
 export default async function DashboardPage() {
   const user = await getSessionUser();
@@ -13,6 +17,10 @@ export default async function DashboardPage() {
   const isActive =
     subscription?.status === "active" || subscription?.status === "trialing";
   const isBillplz = subscription?.payment_provider === "billplz";
+
+  const projects = await listProjectsByUserId(user.id);
+  const plan: "free" | "pro" = isActive ? "pro" : "free";
+  const limit = isActive ? null : FREE_PROJECT_LIMIT;
 
   return (
     <div>
@@ -60,6 +68,12 @@ export default async function DashboardPage() {
           </>
         )}
       </div>
+
+      <ProjectsPanel
+        initialProjects={projects}
+        initialLimit={limit}
+        plan={plan}
+      />
     </div>
   );
 }

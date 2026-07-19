@@ -38,13 +38,15 @@ command once you do.
 
 - `app/` — routes. `(auth)/` = login/signup, `dashboard/` = protected
   user area, `admin/` = protected MRR dashboard, `api/` = route handlers
-  (Stripe/Billplz webhooks and checkout, no other API routes exist yet)
+  (Stripe/Billplz webhooks and checkout, plus `api/projects` for the
+  example Pro feature)
 - `lib/` — all shared server logic: `db.ts` (mysql2 connection pool),
   `auth.ts` (self-hosted email/password sessions, server-only),
   `profile.ts` (profiles + subscriptions data access, server-only),
+  `projects.ts` (example Pro-gated "projects" feature, server-only),
   `stripe.ts`, `billplz.ts`, `email.ts`, `rate-limit.ts`, `usage.ts`
 - `components/` — client components, mostly buttons that call the
-  `api/` routes
+  `api/` routes; `projects-panel.tsx` is the example Pro feature UI
 - `mysql/schema.sql` — the entire DB schema. Run manually in your MySQL
   DB (e.g. `mysql -u root -p your_db < mysql/schema.sql`); there's no
   migration tool wired up. If you add tables/columns, add the SQL here

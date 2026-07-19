@@ -1,0 +1,12 @@
+{
+  "type": "app",
+  "architectures": ["x64"],
+  "buildOptions": {
+    "builder": "nest-tsc",
+    "entryFile": "main"
+  },
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "tsConfigPath": "tsconfig.json"
+  }
+}
