@@ -1,6 +1,7 @@
 import { Controller, Get } from "@nestjs/common";
 import { HealthCheck, HealthCheckService, TypeOrmHealthIndicator, MemoryHealthIndicator, DiskHealthIndicator } from "@nestjs/terminus";
 import { RedisService } from "../redis/redis.service";
+import { Public } from "../guards/jwt-auth.guard";
 
 @Controller("health")
 export class HealthController {
@@ -13,6 +14,7 @@ export class HealthController {
   ) {}
 
   @Get()
+  @Public()
   @HealthCheck()
   async check() {
     return this.health.check([
@@ -30,6 +32,7 @@ export class HealthController {
   }
 
   @Get("live")
+  @Public()
   async liveness() {
     return { status: "ok" };
   }

@@ -6,6 +6,8 @@ import { Team } from "./entities/team.entity";
 import { Membership } from "./entities/membership.entity";
 import { Role } from "./entities/role.entity";
 import { Permission } from "./entities/permission.entity";
+import { User } from "../auth/entities/user.entity";
+import { UserProfile } from "../auth/entities/user-profile.entity";
 import { TenantService } from "./tenant.service";
 import { RbacService } from "./rbac.service";
 import { RbacSeeder } from "./rbac.seeder";
@@ -16,13 +18,13 @@ import { AuthModule } from "../auth/auth.module";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Organization, Workspace, Team, Membership, Role, Permission]),
+    TypeOrmModule.forFeature([Organization, Workspace, Team, Membership, Role, Permission, User, UserProfile]),
     AuditModule,
     EmailModule,
     AuthModule,
   ],
   providers: [TenantService, RbacService, RbacSeeder],
   controllers: [TenantController],
-  exports: [TenantService, RbacService, RbacSeeder],
+  exports: [TenantService, RbacService, RbacSeeder, TypeOrmModule],
 })
 export class TenantModule {}

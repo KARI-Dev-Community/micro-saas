@@ -1,9 +1,9 @@
-import { Controller, Get, Query, Req, Res, Post, Body, UseGuards, HttpCode } from "@nestjs/common";
+import { Controller, Get, Query, Req, Res } from "@nestjs/common";
 import { Request, Response } from "express";
 import { ConfigService } from "@nestjs/config";
 import { AuthService } from "./services/auth.service";
 import { TokenService } from "./services/token.service";
-import { JwtAuthGuard, AuthUser } from "../core/guards/jwt-auth.guard";
+import { Public } from "../core/guards/jwt-auth.guard";
 import { AccessTokenPayload } from "./services/token.service";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
@@ -22,6 +22,7 @@ export class GoogleController {
   ) {}
 
   @Get("login")
+  @Public()
   redirectToGoogle(@Res() res: Response) {
     const clientId = this.config.get("app.googleClientId");
     const redirect = `${this.config.get("app.frontendUrl")}/oauth/google`;
@@ -33,6 +34,7 @@ export class GoogleController {
   }
 
   @Get("callback")
+  @Public()
   async callback(@Query("code") code: string, @Res() res: Response) {
     const { id_token, email, name } = await this.exchange(code);
     let user = await this.auth.findByEmail(email);

@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Patch, Body, Param, UseGuards, Query } from "@nestjs/common";
-import { JwtAuthGuard, AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
+import { AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
 import { PermissionGuard, Permissions } from "../core/guards/permission.guard";
 import { AccessTokenPayload } from "../auth/services/token.service";
 import { BillingService } from "./billing.service";
@@ -16,7 +16,7 @@ class ChangePlanDto {
 }
 
 @Controller("billing")
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
 export class BillingController {
   constructor(private readonly billing: BillingService) {}
 

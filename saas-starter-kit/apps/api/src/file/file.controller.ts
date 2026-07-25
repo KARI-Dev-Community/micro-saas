@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Delete, Param, Body, UseGuards, Query, Header, Res } from "@nestjs/common";
 import { Response } from "express";
-import { JwtAuthGuard, AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
+import { AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
 import { PermissionGuard, Permissions } from "../core/guards/permission.guard";
 import { AccessTokenPayload } from "../auth/services/token.service";
 import { FileService } from "./file.service";
@@ -16,7 +16,7 @@ class UploadMetaDto {
 }
 
 @Controller("files")
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
 export class FileController {
   constructor(private readonly files: FileService) {}
 

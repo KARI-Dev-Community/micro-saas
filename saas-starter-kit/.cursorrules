@@ -1,0 +1,26 @@
+You are editing a NestJS + Next.js multi-tenant SaaS starter kit.
+
+## Critical Rules
+- All backend modules live in `apps/api/src/[feature]/`
+- All frontend routes live in `apps/web/src/app/`
+- Shared types live in `packages/shared/src/`
+- Use `@shared/enums` for Permission, RoleName, PlanType, SubscriptionStatus
+- Public endpoints require `@Public()` decorator (from `core/guards/jwt-auth.guard`)
+- Protected endpoints require `@Permissions(...)` (from `core/guards/permission.guard`)
+- Never use `@UseGuards(JwtAuthGuard)` — it's already global in AppModule
+- All API returns use `ok()`/`fail()` from `@shared/response`
+- Entities must have `organizationId` + `@Index()`
+- Frontend uses `api.get/post/patch/del` from `lib/api-client.ts`
+- UI authorization uses `<Can permission="...">` or `useAuthStore.hasPermission()`
+- All responses follow envelope: `{ success, message, data, meta }`
+
+## File Patterns
+- Backend module: `controller.ts` + `service.ts` + `dto/*.ts` + `entities/*.ts` + `module.ts`
+- Frontend feature: `app/dashboard/[feature]/page.tsx` + `components/[feature]-*.tsx`
+- Migrations go in `apps/api/src/database/migrations/`
+
+## Do Not
+- Create new global modules
+- Trust client-supplied IDs without scoping by `organizationId`
+- Add `NEXT_PUBLIC_` to server-only env vars
+- Change Sentry config filenames

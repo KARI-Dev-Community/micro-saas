@@ -1,11 +1,11 @@
 import { Controller, Get, UseGuards, Query } from "@nestjs/common";
-import { JwtAuthGuard, AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
+import { AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
 import { PermissionGuard, Permissions } from "../core/guards/permission.guard";
 import { AccessTokenPayload } from "../auth/services/token.service";
 import { SearchService } from "./search.service";
 
 @Controller("search")
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
 export class SearchController {
   constructor(private readonly search: SearchService) {}
 

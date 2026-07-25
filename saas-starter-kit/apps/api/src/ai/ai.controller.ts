@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, UseGuards, Query } from "@nestjs/common";
-import { JwtAuthGuard, AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
+import { AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
 import { PermissionGuard, Permissions } from "../core/guards/permission.guard";
 import { AccessTokenPayload } from "../auth/services/token.service";
 import { AiService } from "./ai.service";
@@ -13,7 +13,7 @@ class ChatDto {
 }
 
 @Controller("ai")
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
 export class AiController {
   constructor(private readonly ai: AiService) {}
 

@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Body, UseGuards } from "@nestjs/common";
-import { JwtAuthGuard, AuthUser } from "../core/guards/jwt-auth.guard";
+import { AuthUser } from "../core/guards/jwt-auth.guard";
 import { PermissionGuard, Permissions } from "../core/guards/permission.guard";
 import { AccessTokenPayload } from "../auth/services/token.service";
 import { AdminService } from "./admin.service";
 import { Permission } from "@shared/enums";
 
 @Controller("admin")
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
 export class AdminController {
   constructor(private readonly admin: AdminService) {}
 

@@ -10,11 +10,15 @@ import { Reflector } from "@nestjs/core";
 import { RbacService } from "../../tenant/rbac.service";
 import { AccessTokenPayload } from "../../auth/services/token.service";
 
+/** Metadata key used by @Permissions(). */
 export const PERMISSIONS_KEY = "permissions";
+/** Require specific permissions on a route/controller. */
 export const Permissions = (...permissions: string[]) =>
   SetMetadata(PERMISSIONS_KEY, permissions);
 
+/** Metadata key for require-all vs require-any mode. */
 export const REQUIRE_ALL = "requireAll";
+/** Set permission checking mode: "all" (default) or "any". */
 export const PermissionMode = (mode: "all" | "any") => SetMetadata(REQUIRE_ALL, mode === "all");
 
 // Enforces RBAC: resolves the user's permissions for the active org and

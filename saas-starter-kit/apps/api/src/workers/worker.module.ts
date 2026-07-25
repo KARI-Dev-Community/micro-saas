@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
 import { BullModule } from "@nestjs/bullmq";
 import { QUEUE_NAMES } from "../core/queue/queue.registry";
 import { EmailConsumer } from "./email.consumer";
@@ -6,6 +7,9 @@ import { NotificationConsumer } from "./notification.consumer";
 import { ReportConsumer } from "./report.consumer";
 import { CleanupConsumer } from "./cleanup.consumer";
 import { AiConsumer } from "./ai.consumer";
+import { Session } from "../auth/entities/session.entity";
+import { AiMessage } from "../ai/entities/ai-message.entity";
+import { AiUsage } from "../ai/entities/ai-usage.entity";
 import { EmailModule } from "../email/email.module";
 import { AuthModule } from "../auth/auth.module";
 import { AiModule } from "../ai/ai.module";
@@ -27,6 +31,7 @@ import { AiModule } from "../ai/ai.module";
       { name: QUEUE_NAMES.CLEANUP },
       { name: QUEUE_NAMES.AI }
     ),
+    TypeOrmModule.forFeature([Session, AiMessage, AiUsage]),
     EmailModule,
     AuthModule,
     AiModule,

@@ -16,6 +16,6 @@ import { AuditModule } from "../audit/audit.module";
   ],
   providers: [BillingService],
   controllers: [BillingController],
-  exports: [BillingService],
+  exports: [BillingService, TypeOrmModule],
 })
 export class BillingModule {}

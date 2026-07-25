@@ -1,5 +1,6 @@
 // Shared enums used across backend entities, DTOs, and frontend guards.
 
+/** Subscription billing plans. */
 export enum PlanType {
   FREE = "free",
   TRIAL = "trial",
@@ -7,6 +8,7 @@ export enum PlanType {
   ANNUAL = "annual",
 }
 
+/** Subscription lifecycle states. */
 export enum SubscriptionStatus {
   ACTIVE = "active",
   TRIALING = "trialing",
@@ -16,6 +18,7 @@ export enum SubscriptionStatus {
   UNPAID = "unpaid",
 }
 
+/** User account states. */
 export enum UserStatus {
   PENDING = "pending", // email not verified
   ACTIVE = "active",
@@ -24,34 +27,40 @@ export enum UserStatus {
   DELETED = "deleted",
 }
 
+/** Authentication provider sources. */
 export enum AuthProvider {
   EMAIL = "email",
   GOOGLE = "google",
 }
 
+/** Two-factor authentication methods. */
 export enum TwoFactorMethod {
   NONE = "none",
   TOTP = "totp",
   WEBAUTHN = "webauthn",
 }
 
+/** Notification delivery channels. */
 export enum NotificationChannel {
   IN_APP = "in_app",
   EMAIL = "email",
   REALTIME = "realtime",
 }
 
+/** Notification read states. */
 export enum NotificationStatus {
   UNREAD = "unread",
   READ = "read",
   ARCHIVED = "archived",
 }
 
+/** File access visibility. */
 export enum FileVisibility {
   PUBLIC = "public",
   PRIVATE = "private",
 }
 
+/** RBAC role names. */
 export enum RoleName {
   SUPER_ADMIN = "super_admin",
   ORG_OWNER = "org_owner",
@@ -61,6 +70,7 @@ export enum RoleName {
   VIEWER = "viewer",
 }
 
+/** Membership lifecycle states. */
 export enum MembershipStatus {
   INVITED = "invited",
   ACTIVE = "active",
@@ -69,6 +79,7 @@ export enum MembershipStatus {
 
 // Permission groups => individual permissions. Use the string form
 // `${resource}.${action}` consistently (e.g. "project.create").
+/** Resource:action permission strings used with @Permissions(). */
 export enum Permission {
   // Platform (super admin)
   PLATFORM_READ = "platform.read",
@@ -130,6 +141,7 @@ export enum Permission {
 
 // Default permission sets per role. RoleName.SUPER_ADMIN is handled specially
 // (bypasses all guards); everything else resolves through this map.
+/** Default permission matrix keyed by role. */
 export const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
   [RoleName.SUPER_ADMIN]: Object.values(Permission),
 
@@ -249,4 +261,5 @@ export const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
   ],
 };
 
+/** All available role names. */
 export const ALL_ROLES = Object.values(RoleName);

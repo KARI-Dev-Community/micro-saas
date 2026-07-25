@@ -39,18 +39,16 @@ class CreateTeamDto {
 }
 
 @Controller("organizations")
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
 export class TenantController {
   constructor(private readonly tenant: TenantService) {}
 
   @Get("mine")
-  @UseGuards(JwtAuthGuard)
   async myOrgs(@AuthUser() user: AccessTokenPayload) {
     return this.tenant.listOrganizationsForUser(user.sub);
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   async create(@AuthUser() user: AccessTokenPayload, @Body() dto: CreateOrgDto, @Req() req: Request) {
     return this.tenant.createOrganization({ name: dto.name, slug: dto.slug, ownerId: user.sub });
   }

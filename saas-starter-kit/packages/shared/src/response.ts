@@ -7,6 +7,7 @@
 //   meta: object | null   // pagination, totals, etc.
 // }
 
+/** Pagination metadata attached to list responses. */
 export interface ApiMeta {
   page?: number;
   limit?: number;
@@ -15,6 +16,7 @@ export interface ApiMeta {
   [key: string]: unknown;
 }
 
+/** Standard API envelope returned by every endpoint. */
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
@@ -22,10 +24,12 @@ export interface ApiResponse<T = unknown> {
   meta?: ApiMeta | null;
 }
 
+/** Build a successful API response. */
 export function ok<T>(data: T, message = "Success", meta?: ApiMeta): ApiResponse<T> {
   return { success: true, message, data, meta: meta ?? null };
 }
 
+/** Build a failed API response. */
 export function fail(message: string, data: unknown = null): ApiResponse {
   return { success: false, message, data };
 }

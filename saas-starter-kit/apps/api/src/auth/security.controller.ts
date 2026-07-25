@@ -6,12 +6,11 @@ import {
   Body,
   Param,
   Req,
-  UseGuards,
   HttpCode,
   HttpStatus,
 } from "@nestjs/common";
 import { Request } from "express";
-import { JwtAuthGuard, AuthUser } from "../core/guards/jwt-auth.guard";
+import { AuthUser } from "../core/guards/jwt-auth.guard";
 import { AccessTokenPayload } from "./services/token.service";
 import { TwoFactorService } from "./services/two-factor.service";
 import { AuthService } from "./services/auth.service";
@@ -34,7 +33,6 @@ class PasskeyRegisterDto {
 }
 
 @Controller("auth/security")
-@UseGuards(JwtAuthGuard)
 export class SecurityController {
   constructor(
     private readonly twoFactor: TwoFactorService,

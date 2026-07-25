@@ -1,11 +1,10 @@
-import { Controller, Get, Patch, Delete, Post, Body, Param, UseGuards, Query, Req } from "@nestjs/common";
+import { Controller, Get, Patch, Delete, Post, Body, Param, Query, Req } from "@nestjs/common";
 import { Request } from "express";
-import { JwtAuthGuard, AuthUser } from "../core/guards/jwt-auth.guard";
+import { AuthUser } from "../core/guards/jwt-auth.guard";
 import { AccessTokenPayload } from "../auth/services/token.service";
 import { UserService } from "./user.service";
 
 @Controller("users")
-@UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(private readonly users: UserService) {}
 
@@ -41,7 +40,6 @@ export class UserController {
   }
 
   @Delete(":id")
-  @UseGuards(JwtAuthGuard)
   async delete(@Param("id") id: string, @AuthUser() user: AccessTokenPayload) {
     await this.users.delete(id, user.sub);
     return { deleted: true };

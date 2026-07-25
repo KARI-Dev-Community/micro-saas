@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { TerminusModule } from "@nestjs/terminus";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { AppDataSource } from "./config/typeorm-cli";
@@ -32,6 +33,7 @@ import { WorkerModule } from "./workers/worker.module";
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [appConfig] }),
     TypeOrmModule.forRoot(AppDataSource.options),
+    TerminusModule,
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
     RedisModule,
     QueueModule,
@@ -56,7 +58,6 @@ import { WorkerModule } from "./workers/worker.module";
     { provide: APP_INTERCEPTOR, useClass: RequestLoggingInterceptor },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    // JWT auth resolves req.user globally; PermissionGuard enforces RBAC per-route.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
   ],

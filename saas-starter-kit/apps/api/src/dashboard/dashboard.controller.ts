@@ -1,12 +1,12 @@
 import { Controller, Get, UseGuards } from "@nestjs/common";
-import { JwtAuthGuard, AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
+import { AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
 import { PermissionGuard, Permissions } from "../core/guards/permission.guard";
 import { AccessTokenPayload } from "../auth/services/token.service";
 import { DashboardService } from "./dashboard.service";
 import { Permission } from "@shared/enums";
 
 @Controller("dashboard")
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
 export class DashboardController {
   constructor(private readonly dash: DashboardService) {}
 

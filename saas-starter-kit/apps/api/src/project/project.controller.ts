@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Query, Param, UseGuards } from "@nestjs/common";
-import { JwtAuthGuard, AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
+import { AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
 import { PermissionGuard, Permissions } from "../core/guards/permission.guard";
 import { AccessTokenPayload } from "../auth/services/token.service";
 import { ProjectService } from "./project.service";
@@ -24,7 +24,7 @@ class CommentDto {
 }
 
 @Controller("projects")
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
 export class ProjectController {
   constructor(private readonly svc: ProjectService) {}
 
@@ -60,7 +60,7 @@ export class ProjectController {
 }
 
 @Controller("activity")
-@UseGuards(JwtAuthGuard, PermissionGuard)
+@UseGuards(PermissionGuard)
 export class ActivityController {
   constructor(private readonly svc: ProjectService) {}
 

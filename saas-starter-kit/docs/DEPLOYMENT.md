@@ -77,3 +77,15 @@ Set `DB_TYPE=mysql` and `DB_PORT=3306`. The migration uses PostgreSQL DDL; for M
 generate a MySQL-flavored migration (`DB_TYPE=mysql npm run migration:generate`) or
 adapt `apps/api/src/database/migrations/0000000000001-initial-schema.ts`
 (uuid → char(36), timestamptz → datetime, jsonb → json, GIN → FULLTEXT).
+
+## OpenAPI spec export
+
+The API is documented with Swagger at `/docs`. To export a JSON spec for AI tools or client generation:
+
+```bash
+# Start the API, then:
+curl http://localhost:3001/docs-json > docs/openapi.json
+curl http://localhost:3001/docs > docs/swagger.html
+```
+
+Commit `docs/openapi.json` to the repo so AI assistants can inspect the exact API surface without running the server.
