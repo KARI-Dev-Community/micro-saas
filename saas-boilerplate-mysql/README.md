@@ -47,8 +47,65 @@ npm install
 2. Load the schema: `mysql -u root -p saas_boilerplate < mysql/schema.sql`
    (or paste `mysql/schema.sql` into your DB GUI's query editor). This
    creates `profiles`, `subscriptions`, and `usage_counters`.
-3. Fill in the `DATABASE_*` and `SESSION_SECRET` values in `.env.local`
-   (see step 7). Generate a session secret with `openssl rand -base64 32`.
+ 3. Fill in the `DATABASE_*` and `SESSION_SECRET` values in `.env.local`
+    (see step 7). Generate a session secret with `openssl rand -base64 32`.
+
+### MySQL credentials & connection
+
+These are the credentials used by the Docker dev stack
+(`docker-compose.yml`) — the MySQL container is seeded with them on
+first boot. Use them to connect from your DB client or the `mysql` CLI.
+
+| Field | Value |
+|-------|-------|
+| Host | `localhost` (or `mysql` from inside the app container) |
+| Port | `3306` |
+| Database | `saas_boilerplate` |
+| App user | `saas` |
+| App password | `saas_password` |
+| Root user | `root` |
+| Root password | `root_password` |
+
+**Connect as the app user (CLI):**
+
+```sql
+mysql -h 127.0.0.1 -P 3306 -u saas -p
+-- Enter password when prompted: saas_password
+USE saas_boilerplate;
+```
+
+**Connect as root (CLI):**
+
+```sql
+mysql -h 127.0.0.1 -P 3306 -u root -p
+-- Enter password when prompted: root_password
+USE saas_boilerplate;
+```
+
+**Example DSNs for GUI clients (TablePlus / DBeaver / MySQL Workbench):**
+
+```
+# App user
+mysql://saas:saas_password@127.0.0.1:3306/saas_boilerplate
+
+# Root
+mysql://root:root_password@127.0.0.1:3306/saas_boilerplate
+```
+
+**In the app's `.env.local` (must match the values above):**
+
+```bash
+DATABASE_HOST=localhost
+DATABASE_PORT=3306
+DATABASE_USER=saas
+DATABASE_PASSWORD=saas_password
+DATABASE_NAME=saas_boilerplate
+```
+
+> These are dev-only defaults shipped for convenience — never use them in
+> production. Change `MYSQL_PASSWORD`/`MYSQL_ROOT_PASSWORD` in
+> `docker-compose.yml` and regenerate `DATABASE_PASSWORD` before deploying.
+
 
 Note: auth is self-hosted — there's no external auth provider to
 configure. Passwords are hashed with bcrypt; sessions are stateless
