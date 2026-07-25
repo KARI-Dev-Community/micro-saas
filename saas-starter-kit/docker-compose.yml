@@ -46,12 +46,18 @@ services:
       JWT_REFRESH_EXPIRES_IN: "30d"
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       EMAIL_PROVIDER: console
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "3001"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: ["sh", "-c", "npx ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run -d apps/api/src/config/typeorm-cli.ts && node apps/api/dist/main.js"]
+    command: ["sh", "-c", "node /app/node_modules/typeorm/cli.js migration:run -d dist/apps/api/src/config/typeorm-cli.js && node dist/apps/api/src/main.js"]
 
   web:
     build:
@@ -61,17 +67,26 @@ services:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   nginx:
     image: nginx:1.27-alpine
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - api
-      - web
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
 
 volumes:
   pgdata:
