@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { getTokens, clearTokens, storeTokens, Tokens } from "./api-client";
+import { clearTokens, storeTokens, Tokens } from "./api-client";
 import { Permission } from "@shared/enums";
 
 // Global auth + tenant state. Persisted to localStorage so refreshes keep
@@ -23,21 +23,21 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      tokens: getTokens(),
+      tokens: null,
       user: null,
       permissions: [],
       activeOrgId: null,
       organizations: [],
       setSession: (tokens, user, permissions) => {
         storeTokens(tokens);
-        set({ tokens, user, permissions });
+        set({ tokens, user, permissions, activeOrgId: null, organizations: [] });
       },
       setActiveOrg: (orgId) => set({ activeOrgId: orgId }),
       setOrganizations: (organizations) => set({ organizations }),
       setPermissions: (permissions) => set({ permissions }),
       logout: () => {
         clearTokens();
-        set({ tokens: null, user: null, permissions: [], activeOrgId: null });
+        set({ tokens: null, user: null, permissions: [], activeOrgId: null, organizations: [] });
       },
       hasPermission: (perm) => get().permissions.includes(perm),
       hasAny: (perms) => perms.some((p) => get().permissions.includes(p)),

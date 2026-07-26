@@ -30,17 +30,18 @@ export class RbacService {
     return this.resolveForRole(membership.role);
   }
 
-  async resolveForRole(role: RoleName): Promise<{ role: RoleName; permissions: string[] }> {
-    if (role === RoleName.SUPER_ADMIN) {
+  async resolveForRole(role: RoleName | string): Promise<{ role: RoleName; permissions: string[] }> {
+    const roleKey = (role ?? "").trim().toLowerCase();
+    if (roleKey === RoleName.SUPER_ADMIN) {
       const all = await this.roleRepo.find({ where: { name: RoleName.SUPER_ADMIN }, relations: ["permissions"] });
       const perms = all[0]?.permissions.map((p) => p.key) ?? [];
-      return { role, permissions: perms.length ? perms : Object.values(Permission) };
+      return { role: RoleName.SUPER_ADMIN, permissions: perms.length ? perms : Object.values(Permission) };
     }
     const roleEntity = await this.roleRepo.findOne({
-      where: { name: role },
+      where: { name: roleKey as RoleName },
       relations: ["permissions"],
     });
-    return { role, permissions: roleEntity?.permissions.map((p) => p.key) ?? [] };
+    return { role: roleKey as RoleName, permissions: roleEntity?.permissions.map((p) => p.key) ?? [] };
   }
 
   async assertPermission(

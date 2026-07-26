@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
@@ -17,6 +17,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { EmailModule } from "../email/email.module";
 import { AuditModule } from "../audit/audit.module";
 import { RedisModule } from "../core/redis/redis.module";
+import { TenantModule } from "../tenant/tenant.module";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { RedisModule } from "../core/redis/redis.module";
     EmailModule,
     AuditModule,
     RedisModule,
+    forwardRef(() => TenantModule),
   ],
   providers: [AuthService, TokenService, TwoFactorService, JwtStrategy],
   controllers: [AuthController, SecurityController, GoogleController],

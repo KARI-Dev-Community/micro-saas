@@ -34,7 +34,7 @@ export function LoginForm() {
         return;
       }
       const r = res as any;
-      setSession({ accessToken: r.accessToken, refreshToken: r.refreshToken, expiresIn: r.expiresIn }, r.user, r.user.permissions ?? []);
+      setSession({ accessToken: r.accessToken, refreshToken: r.refreshToken, expiresIn: r.expiresIn }, { id: r.user.id, email: r.user.email }, []);
       router.push("/dashboard");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Login failed");

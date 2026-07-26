@@ -17,7 +17,7 @@ export class User extends BaseEntity {
   @Column({ type: "varchar", length: 255 })
   email!: string;
 
-  @Column({ type: "varchar", length: 255, nullable: true, select: false })
+  @Column({ type: "varchar", length: 255, nullable: true })
   passwordHash?: string | null;
 
   @Column({ type: "varchar", length: 64, default: UserStatus.PENDING })
@@ -47,7 +47,7 @@ export class User extends BaseEntity {
   @Column({ type: "varchar", length: 32, default: TwoFactorMethod.NONE })
   twoFactorMethod!: TwoFactorMethod;
 
-  @Column({ type: "varchar", length: 64, nullable: true, select: false })
+  @Column({ type: "varchar", length: 64, nullable: true })
   twoFactorSecret?: string | null;
 
   @Column({ type: "boolean", default: false })

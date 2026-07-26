@@ -12,7 +12,15 @@ import { Permission } from "@shared/enums";
 
 const NAV = [
   { href: "/dashboard", label: "Overview" },
+  { href: "/dashboard/profile", label: "Profile" },
+  { href: "/dashboard/organizations", label: "Organizations" },
   { href: "/dashboard/projects", label: "Projects", perm: Permission.PROJECT_READ },
+  { href: "/dashboard/tasks", label: "Tasks", perm: Permission.PROJECT_TASK_READ },
+  { href: "/dashboard/notifications", label: "Notifications", perm: Permission.NOTIFICATION_READ },
+  { href: "/dashboard/files", label: "Files", perm: Permission.FILE_READ },
+  { href: "/dashboard/search", label: "Search", perm: Permission.ORG_READ },
+  { href: "/dashboard/analytics", label: "Analytics", perm: Permission.DASHBOARD_READ },
+  { href: "/dashboard/security", label: "Security" },
   { href: "/dashboard/billing", label: "Billing", perm: Permission.ORG_BILLING_READ },
   { href: "/dashboard/ai", label: "AI Assistant", perm: Permission.AI_CHAT },
   { href: "/dashboard/admin", label: "Admin", perm: Permission.PLATFORM_READ },
@@ -27,7 +35,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [tokens, router]);
 
   useEffect(() => {
-    if (tokens && organizations.length === 0) {
+    if (!tokens) return;
+    if (!activeOrgId || organizations.length === 0) {
       api.get<{ id: string; name: string; slug: string }[]>("/api/organizations/mine")
         .then((orgs) => {
           setOrganizations(orgs);
@@ -35,7 +44,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         })
         .catch(() => {});
     }
-  }, [tokens, organizations.length, activeOrgId, setOrganizations, setActiveOrg]);
+  }, [tokens, activeOrgId, organizations.length, setOrganizations, setActiveOrg]);
+
+  useEffect(() => {
+    if (!tokens || !activeOrgId) return;
+    api.get<{ id: string; email: string; permissions: string[] }>("/api/auth/me", { organizationId: activeOrgId })
+      .then((me) => {
+        useAuthStore.setState({
+          user: { id: me.id, email: me.email },
+          permissions: me.permissions ?? [],
+        });
+      })
+      .catch(() => {});
+  }, [tokens, activeOrgId]);
 
   const org = organizations.find((o) => o.id === activeOrgId);
 

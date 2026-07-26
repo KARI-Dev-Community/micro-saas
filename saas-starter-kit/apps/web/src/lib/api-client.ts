@@ -66,18 +66,23 @@ export async function apiFetch<T = unknown>(
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
 
-  if (res.status === 401 && tokens?.refreshToken) {
-    // Attempt refresh once.
-    try {
-      const refreshed = await refreshTokens(tokens.refreshToken);
-      storeTokens(refreshed);
-      headers["Authorization"] = `Bearer ${refreshed.accessToken}`;
-      const retry = await fetch(url, { method: opts.method ?? "GET", headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
-      return unwrap<T>(await retry.json());
-    } catch {
-      clearTokens();
-      throw new ApiError("Session expired", 401);
+  if (!res.ok) {
+    if (res.status === 401 && tokens?.refreshToken) {
+      try {
+        const refreshed = await refreshTokens(tokens.refreshToken);
+        storeTokens(refreshed);
+        headers["Authorization"] = `Bearer ${refreshed.accessToken}`;
+        const retry = await fetch(url, { method: opts.method ?? "GET", headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+        return unwrap<T>(await retry.json());
+      } catch {
+        clearTokens();
+        throw new ApiError("Session expired", 401);
+      }
     }
+    const json = await res.json().catch(() => ({} as ApiResponse<T>));
+    const message = (json && (json as any).message) || res.statusText || "Request failed";
+    const code = (json && (json as any).data && (json as any).data.code);
+    throw new ApiError(message, res.status, code);
   }
 
   return unwrap<T>(await res.json());
@@ -89,8 +94,13 @@ async function refreshTokens(refreshToken: string): Promise<Tokens> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refreshToken }),
   });
-  if (!res.ok) throw new ApiError("Refresh failed", res.status);
-  return res.json();
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({} as ApiResponse<Tokens>));
+    const message = (json && (json as any).message) || res.statusText || "Refresh failed";
+    throw new ApiError(message, res.status);
+  }
+  const json = await res.json() as ApiResponse<Tokens>;
+  return json.data as Tokens;
 }
 
 function unwrap<T>(json: ApiResponse<T>): T {

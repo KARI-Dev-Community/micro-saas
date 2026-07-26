@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
@@ -219,7 +220,7 @@ export class AuthService {
   }
 }
 
-class UnauthorizedError extends BadRequestException {
+class UnauthorizedError extends UnauthorizedException {
   constructor() {
     super("Invalid credentials");
   }

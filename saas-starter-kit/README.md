@@ -57,14 +57,6 @@ npm run dev:api & npm run dev:web
 - API: http://localhost:3001 (Swagger at `/docs`)
 - Web: http://localhost:3000
 
-## Quick Start (Docker)
-
-```bash
-cp .env.example .env
-docker compose up -d               # api + web + nginx + postgres + redis
-# app available on http://localhost (nginx)
-```
-
 ## API Standards
 
 All responses use the standard envelope:
@@ -79,3 +71,20 @@ exception filter. Swagger documents every endpoint; auth via `Authorization: Bea
 plus `x-organization-id` for tenant-scoped calls.
 
 See `docs/` for the ERD, RBAC matrix, full API spec, auth flow, multi-tenant architecture, and reusable patterns.
+
+(End of file - total 81 lines)
+
+## Super Admin
+
+To create a super‑admin user:
+
+1. Run the following SQL (replace `YOUR_ORG_ID_UUID` with the actual organization UUID):
+
+```sql
+INSERT INTO "users" (email, passwordHash, status, provider, "emailVerified", locale, timezone, currency) VALUES ('superadmin@example.com', '$2b$10$PLACEHOLDER', 'ACTIVE', 'EMAIL', true, 'en', 'UTC', 'USD');
+INSERT INTO "memberships" (userId, organizationId, role, status) VALUES ((SELECT id FROM "users" WHERE email = 'superadmin@example.com'), 'YOUR_ORG_ID_UUID', 'SUPER_ADMIN', 'ACTIVE');
+```
+
+2. Ensure the organization exists and the user is linked with the `SUPER_ADMIN` role (the role automatically grants all permissions).
+
+3. Log in with the credentials (set the password for the user). The `SUPER_ADMIN` role bypasses all RBAC checks.

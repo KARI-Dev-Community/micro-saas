@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Organization } from "./entities/organization.entity";
 import { Workspace } from "./entities/workspace.entity";
@@ -21,7 +21,7 @@ import { AuthModule } from "../auth/auth.module";
     TypeOrmModule.forFeature([Organization, Workspace, Team, Membership, Role, Permission, User, UserProfile]),
     AuditModule,
     EmailModule,
-    AuthModule,
+    forwardRef(() => AuthModule),
   ],
   providers: [TenantService, RbacService, RbacSeeder],
   controllers: [TenantController],

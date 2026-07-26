@@ -28,8 +28,9 @@ export class AdminService {
     return this.flags.save(flag);
   }
 
-  async listUsers(): Promise<User[]> {
-    return this.users.find({ order: { createdAt: "DESC" }, take: 100 });
+  async listUsers(): Promise<Omit<User, "passwordHash" | "twoFactorSecret">[]> {
+    const users = await this.users.find({ order: { createdAt: "DESC" }, take: 100 });
+    return users.map(({ passwordHash: _passwordHash, twoFactorSecret: _twoFactorSecret, ...rest }) => rest as Omit<User, "passwordHash" | "twoFactorSecret">);
   }
 
   async listOrgs(): Promise<Organization[]> {

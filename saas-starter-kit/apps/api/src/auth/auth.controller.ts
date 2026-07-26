@@ -8,6 +8,7 @@ import {
   Query,
   Req,
   Res,
+  Inject,
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { AuthService } from "./services/auth.service";
@@ -19,15 +20,16 @@ import {
   ChangePasswordDto,
   RefreshDto,
 } from "./dto/auth.dto";
-import { AuthUser } from "../core/guards/jwt-auth.guard";
+import { AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
 import { AccessTokenPayload } from "./services/token.service";
 import { Public } from "../core/guards/jwt-auth.guard";
 import { ConfigService } from "@nestjs/config";
+import { RbacService } from "../tenant/rbac.service";
 
 @Public()
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly auth: AuthService, private readonly config: ConfigService) {}
+  constructor(private readonly auth: AuthService, private readonly config: ConfigService, private readonly rbac: RbacService) {}
 
   private clientCtx(req: Request) {
     return {
@@ -108,7 +110,12 @@ export class AuthController {
   }
 
   @Get("me")
-  async me(@AuthUser() user: AccessTokenPayload) {
-    return { id: user.sub, email: user.email, organizationId: user.organizationId, permissions: user.perms };
+  async me(@AuthUser() user: AccessTokenPayload, @CurrentOrganization() orgId: string) {
+    let permissions = user.perms;
+    if (orgId) {
+      const resolved = await this.rbac.getUserPermissions(user.sub, orgId);
+      permissions = resolved.permissions;
+    }
+    return { id: user.sub, email: user.email, organizationId: orgId || user.organizationId, permissions };
   }
 }
