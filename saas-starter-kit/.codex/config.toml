@@ -1,0 +1,49 @@
+# Codex Configuration
+
+SaaS Starter Kit configuration for OpenAI Codex.
+
+## Project Overview
+
+A NestJS + Next.js multi-tenant SaaS boilerplate.
+
+## Key Directories
+
+- `apps/api/` — NestJS backend (controllers, services, entities, DTOs, migrations)
+- `apps/web/` — Next.js frontend (App Router, TanStack Query, React Hook Form)
+- `packages/shared/` — Shared types, enums, response utilities
+- `docs/` — Architecture docs, API spec, ERD, patterns
+
+## Critical Rules
+
+- Every tenant-scoped entity has `organizationId` + `@Index()` — never trust client-supplied IDs without scoping
+- All API responses use `{ success, message, data, meta }` envelope via `ok()`/`fail()` from `@shared/response`
+- Protected routes use `@Permissions(...)` (PermissionGuard) — never `@UseGuards(JwtAuthGuard)` (it's global)
+- Public routes use `@Public()` from `core/guards/jwt-auth.guard`
+- Frontend sends `x-organization-id` header via `api` helper
+- UI authorization uses `<Can permission="...">` or `useAuthStore.hasPermission()`
+- Never add `NEXT_PUBLIC_` prefix to server-only env vars
+- All DTOs use `class-validator` decorators; use `ValidationPipe` (whitelist + transform)
+- Migrations go in `apps/api/src/database/migrations/`; run `npm run migrate` before deploying
+
+## File Patterns
+
+**Backend module** (`apps/api/src/[feature]/`):
+- `entities/[feature].entity.ts` — TypeORM entity with `organizationId` + `@Index()`
+- `dto/create-[feature].dto.ts` / `update-[feature].dto.ts` — `class-validator` decorators
+- `services/[feature].service.ts` — `@Injectable()`, scoped by `organizationId`
+- `controllers/[feature].controller.ts` — `@Controller()`, `@UseGuards(PermissionGuard)`, `@Permissions(...)`
+- `[feature].module.ts` — imports TypeOrmModule, registers service/controller
+
+**Frontend feature** (`apps/web/src/app/dashboard/[feature]/`):
+- `page.tsx` — TanStack Query for data fetching, React Hook Form + Zod for forms
+- Uses `api.get/post/patch/del` from `lib/api-client.ts`
+- Gates with `<Can permission={Permission.[FEATURE]_READ}>`
+
+## Reference Files
+
+- `AGENTS.md` — Full AI prompt templates
+- `docs/AI_PROMPTS.md` — Copy-paste prompt templates
+- `docs/API.md` — Full API specification
+- `docs/ERD.md` — Entity relationship diagram
+- `docs/RBAC.md` — Permission matrix
+- `docs/PATTERNS.md` — Reusable code patterns

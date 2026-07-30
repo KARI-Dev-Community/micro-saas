@@ -1,40 +1,43 @@
 {
-  "$schema": "https://app.kilo.ai/config.json",
-  "skills": {
-    "paths": ["./skills"]
-  },
-  "agents": {
-    "paths": ["./.kilo/agents"]
-  },
-  "commands": {
-    "paths": ["./.kilo/commands"],
-    "add-feature": {
-      "description": "Add a new feature module with entity, service, controller, DTOs, permissions, and frontend page",
+  "version": "1.0",
+  "prompts": {
+    "addFeature": {
+      "description": "Add a new feature module to the SaaS starter kit",
       "prompt": "Add a new module called [Feature] to the SaaS starter kit.\n\nIt should have:\n- Entity [Entity] with columns: id (uuid PK), organizationId (uuid, indexed), [fields], createdAt, updatedAt\n- Service with CRUD methods scoped by organizationId\n- Controller with routes: GET /[feature], GET /[feature]/:id, POST /[feature], PATCH /[feature]/:id, DELETE /[feature]/:id\n- DTOs for create/update with class-validator decorators\n- Permission enum values: [feature].read, [feature].create, [feature].update, [feature].delete\n- Frontend page at /dashboard/[feature] with list and create form\n\nFollow the existing patterns in apps/api/src/project/ and apps/web/src/app/dashboard/projects/.\n\nRules:\n- All entities must have organizationId + index\n- Use @Permissions(...) on protected routes\n- Use @CurrentOrganization() and @AuthUser() param decorators\n- Return ok(data) or fail(message) from @shared/response\n- Frontend uses api.get/post/patch/del from lib/api-client.ts\n- Gate UI with <Can permission=\"...\">"
     },
-    "add-endpoint": {
+    "addEndpoint": {
       "description": "Add a new API endpoint to an existing module",
       "prompt": "Add endpoint GET /api/[module]/stats to [Module]Controller.\n\nIt should return aggregated stats for the current organization.\nUse @Permissions(\"[resource].read\") and @CurrentOrganization().\nReturn ok({ total, active, ... }, \"Stats\").\nFollow the pattern in apps/api/src/dashboard/dashboard.controller.ts."
     },
-    "add-frontend-page": {
+    "addFrontendPage": {
       "description": "Add a new frontend dashboard page",
       "prompt": "Add a new page /dashboard/[feature] to the SaaS starter kit.\n\nIt should:\n- Fetch data from /api/[feature] using api.get() from lib/api-client.ts\n- Display a list with TanStack Query\n- Have a create form using React Hook Form + Zod\n- Gate the page with <Can permission={Permission.[FEATURE]_READ}>\n- Follow the patterns in apps/web/src/app/dashboard/projects/page.tsx"
     },
-    "fix-bug": {
+    "fixBug": {
       "description": "Fix a bug in the SaaS starter kit",
       "prompt": "Bug: [description]\n\nContext:\n- The app uses NestJS with global JwtAuthGuard + PermissionGuard in AppModule\n- Public routes need @Public() decorator from core/guards/jwt-auth.guard\n- Protected routes need @Permissions(...) from core/guards/permission.guard\n- Never use @UseGuards(JwtAuthGuard) — it's redundant\n- All API responses use { success, message, data, meta } envelope\n- Frontend api-client.ts auto-attaches Bearer token and x-organization-id\n- Multi-tenant: every entity has organizationId, scope all queries by it"
     },
-    "add-permission": {
+    "addPermission": {
       "description": "Add a new permission to the SaaS starter kit",
       "prompt": "Add a new permission [resource].[action] to the SaaS starter kit.\n\nSteps:\n1. Add enum value to Permission in packages/shared/src/enums.ts\n2. Add it to the appropriate role arrays in ROLE_PERMISSIONS\n3. Apply @Permissions(Permission.[RESOURCE]_[ACTION]) to the controller method\n4. In the frontend, gate UI with <Can permission={Permission.[RESOURCE]_[ACTION]}>"
     },
-    "add-email-template": {
-      "description": "Add a new transactional email template",
-      "prompt": "Add a new transactional email template to the SaaS starter kit.\n\nThe email system is in apps/api/src/email/. Templates are rendered with Handlebars.\nJobs are enqueued via BullMQ using this.queues.add(QUEUE_NAMES.EMAIL, \"send\", payload).\nFollow the pattern in the existing email service and consumer."
-    },
-    "add-stripe-webhook": {
-      "description": "Add a Stripe webhook endpoint",
-      "prompt": "Add a Stripe webhook endpoint to the SaaS starter kit.\n\nRequirements:\n- Route: POST /api/billing/webhooks/stripe\n- Mark it @Public() so Stripe can call it without auth\n- Use request.rawBody() / request.text() for signature verification — do NOT add body-parsing middleware before it\n- Handle invoice.paid, invoice.payment_failed, customer.subscription.updated\n- Update Subscription entity and enqueue QUEUE_NAMES.EMAIL for receipts\n- Follow patterns in apps/api/src/billing/billing.controller.ts"
+    "adaptDomain": {
+      "description": "Adapt the SaaS starter kit for a different domain",
+      "prompt": "Adapt this SaaS starter kit for a [domain] product (e.g., LMS, CRM, marketplace, helpdesk).\n\nSteps:\n1. Identify the core entities for the domain (e.g., Course/Lesson for LMS, Contact/Deal for CRM)\n2. Rename project/task modules to domain entities, keeping the same patterns\n3. Add new permission enum values in packages/shared/src/enums.ts\n4. Grant new permissions in ROLE_PERMISSIONS for relevant roles\n5. Replace dashboard pages under apps/web/src/app/dashboard/ with domain pages\n6. Update docs/ERD.md to reflect new entity relationships\n7. Update the API specification for new endpoints\n8. Keep organizationId on all tenant-scoped entities\n9. Keep the auth, billing, and admin modules unchanged unless the domain requires it\n\nRules:\n- Do not remove multi-tenancy — it is core to the architecture\n- Do not remove RBAC — adapt roles/permissions to the domain\n- Follow existing patterns in apps/api/src/project/ and apps/web/src/app/dashboard/projects/"
     }
+  },
+  "knowledge": {
+    "files": [
+      "AGENTS.md",
+      "docs/AI_PROMPTS.md",
+      "docs/API.md",
+      "docs/ERD.md",
+      "docs/RBAC.md",
+      "docs/PATTERNS.md",
+      "docs/MULTITENANT.md",
+      "docs/AUTH_FLOW.md",
+      "docs/DEPLOYMENT.md",
+      "docs/MODULE_TEMPLATE.md"
+    ]
   }
 }
