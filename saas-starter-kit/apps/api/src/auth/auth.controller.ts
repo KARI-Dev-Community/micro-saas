@@ -25,8 +25,8 @@ import { AccessTokenPayload } from "./services/token.service";
 import { Public } from "../core/guards/jwt-auth.guard";
 import { ConfigService } from "@nestjs/config";
 import { RbacService } from "../tenant/rbac.service";
+import { Permission } from "@shared/enums";
 
-@Public()
 @Controller("auth")
 export class AuthController {
   constructor(private readonly auth: AuthService, private readonly config: ConfigService, private readonly rbac: RbacService) {}
@@ -113,8 +113,16 @@ export class AuthController {
   async me(@AuthUser() user: AccessTokenPayload, @CurrentOrganization() orgId: string) {
     let permissions = user.perms;
     if (orgId) {
-      const resolved = await this.rbac.getUserPermissions(user.sub, orgId);
-      permissions = resolved.permissions;
+      try {
+        const resolved = await this.rbac.getUserPermissions(user.sub, orgId);
+        permissions = resolved.permissions;
+      } catch {
+        if (await this.rbac.isSuperAdmin(user.sub)) {
+          permissions = Object.values(Permission);
+        }
+      }
+    } else if (await this.rbac.isSuperAdmin(user.sub)) {
+      permissions = Object.values(Permission);
     }
     return { id: user.sub, email: user.email, organizationId: orgId || user.organizationId, permissions };
   }

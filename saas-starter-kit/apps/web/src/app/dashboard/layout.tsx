@@ -36,19 +36,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!tokens) return;
-    if (!activeOrgId || organizations.length === 0) {
-      api.get<{ id: string; name: string; slug: string }[]>("/api/organizations/mine")
-        .then((orgs) => {
-          setOrganizations(orgs);
-          if (orgs.length && !activeOrgId) setActiveOrg(orgs[0].id);
-        })
-        .catch(() => {});
-    }
+    api.get<{ id: string; name: string; slug: string }[]>("/api/organizations/mine")
+      .then((orgs) => {
+        setOrganizations(orgs);
+        if (orgs.length && !activeOrgId) setActiveOrg(orgs[0].id);
+      })
+      .catch(() => {});
   }, [tokens, activeOrgId, organizations.length, setOrganizations, setActiveOrg]);
 
   useEffect(() => {
-    if (!tokens || !activeOrgId) return;
-    api.get<{ id: string; email: string; permissions: string[] }>("/api/auth/me", { organizationId: activeOrgId })
+    if (!tokens) return;
+    api.get<{ id: string; email: string; permissions: string[] }>("/api/auth/me", activeOrgId ? { organizationId: activeOrgId } : undefined)
       .then((me) => {
         useAuthStore.setState({
           user: { id: me.id, email: me.email },
