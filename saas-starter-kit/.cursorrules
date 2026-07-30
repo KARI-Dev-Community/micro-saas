@@ -19,8 +19,26 @@ You are editing a NestJS + Next.js multi-tenant SaaS starter kit.
 - Frontend feature: `app/dashboard/[feature]/page.tsx` + `components/[feature]-*.tsx`
 - Migrations go in `apps/api/src/database/migrations/`
 
+## Architecture
+- Multi-tenant: every tenant-scoped entity has `organizationId`, all queries scoped by it
+- Auth: JWT (HS256) with refresh token rotation; global guards in AppModule
+- RBAC: 6 roles, enum-driven permissions, `PermissionGuard` resolves per-route
+- Queue: BullMQ with Redis for async jobs (email, notifications, AI, cleanup)
+- Response envelope: `{ success, message, data, meta }` via `ok()`/`fail()`
+
 ## Do Not
 - Create new global modules
 - Trust client-supplied IDs without scoping by `organizationId`
 - Add `NEXT_PUBLIC_` to server-only env vars
 - Change Sentry config filenames
+- Skip TypeORM migrations when changing the schema
+
+## Key Reference Files
+- `AGENTS.md` — Full AI prompt templates and architecture reference
+- `docs/AI_PROMPTS.md` — Copy-paste prompt templates
+- `CLAUDE.md` — Claude Code project context
+- `docs/API.md` — Full API specification
+- `docs/ERD.md` — Entity relationship diagram
+- `docs/RBAC.md` — Permission matrix
+- `docs/PATTERNS.md` — Reusable code patterns
+- `docs/MULTITENANT.md` — Multi-tenancy architecture

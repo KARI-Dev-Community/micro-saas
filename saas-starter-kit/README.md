@@ -72,6 +72,18 @@ plus `x-organization-id` for tenant-scoped calls.
 
 See `docs/` for the ERD, RBAC matrix, full API spec, auth flow, multi-tenant architecture, and reusable patterns.
 
+## Documentation (Generated from Codebase)
+
+The following documents were reverse-engineered from the codebase and are maintained under `docs/`:
+
+| Document | File | Purpose |
+|----------|------|---------|
+| Architecture & Design | [`docs/architecture-design.md`](docs/architecture-design.md) | System architecture, module breakdown, data design, security design, error handling |
+| Database Schema / ERD | [`docs/database-schema.md`](docs/database-schema.md) | Full 22-table schema, relationships, indexes, design flags |
+| API Specification | [`docs/api-specification.md`](docs/api-specification.md) | OpenAPI-style endpoint reference (40+ routes) |
+| Software Requirements | [`docs/requirements.md`](docs/requirements.md) | SRS with functional & non-functional requirements |
+| Deployment & Environment | [`docs/deployment.md`](docs/deployment.md) | Docker Compose, PM2, env vars, deployment checklist |
+
 (End of file - total 81 lines)
 
 ## Super Admin
