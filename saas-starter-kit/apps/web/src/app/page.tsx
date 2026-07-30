@@ -1,17 +1,34 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { LandingNav } from "@/components/landing/nav";
+import { LandingHero } from "@/components/landing/hero";
+import { LandingSocialProof } from "@/components/landing/social-proof";
+import { LandingFeatures } from "@/components/landing/features";
+import { LandingHowItWorks } from "@/components/landing/how-it-works";
+import { LandingPricing } from "@/components/landing/pricing";
+import { LandingTestimonials } from "@/components/landing/testimonials";
+import { LandingFaq } from "@/components/landing/faq";
+import { LandingCta } from "@/components/landing/final-cta";
+import { LandingFooter } from "@/components/landing/footer";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "SaaS Starter Kit — Build multi-tenant SaaS in days",
+  description:
+    "Production-ready multi-tenant SaaS boilerplate with NestJS + Next.js. Auth, RBAC, billing, AI, and project management — scoped to every organization out of the box.",
+};
 
 export default function Home() {
   return (
-    <main className="max-w-3xl mx-auto text-center py-24">
-      <h1 className="text-4xl font-bold tracking-tight">Ship your multi-tenant SaaS fast</h1>
-      <p className="mt-4 text-lg text-muted-foreground">
-        NestJS + Next.js starter kit with auth, RBAC, billing, AI, and more.
-      </p>
-      <div className="mt-8 flex justify-center gap-3">
-        <Link href="/register"><Button>Start free</Button></Link>
-        <Link href="/login"><Button variant="outline">Sign in</Button></Link>
-      </div>
+    <main className="flex flex-col">
+      <LandingNav />
+      <LandingHero />
+      <LandingSocialProof />
+      <LandingFeatures />
+      <LandingHowItWorks />
+      <LandingPricing />
+      <LandingTestimonials />
+      <LandingFaq />
+      <LandingCta />
+      <LandingFooter />
     </main>
   );
 }
