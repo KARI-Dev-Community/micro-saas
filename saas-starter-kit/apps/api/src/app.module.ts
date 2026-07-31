@@ -14,6 +14,7 @@ import { JwtAuthGuard } from "./core/guards/jwt-auth.guard";
 import { HealthController } from "./core/health/health.controller";
 import { RedisModule } from "./core/redis/redis.module";
 import { QueueModule } from "./core/queue/queue.module";
+import { SecurityModule } from "./security/security.module";
 import { AuthModule } from "./auth/auth.module";
 import { TenantModule } from "./tenant/tenant.module";
 import { BillingModule } from "./billing/billing.module";
@@ -37,6 +38,7 @@ import { WorkerModule } from "./workers/worker.module";
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
     RedisModule,
     QueueModule,
+    SecurityModule,
     AuditModule,
     EmailModule,
     AuthModule,

@@ -3605,3 +3605,61 @@ The SaaS Starter Kit provides:
 - **Notes**:
   - All tenant‑scoped queries must include `organizationId` in the WHERE clause or rely on the request header `x_organization_id` that the application layers onto the query.
   - Permissions are additive; a user can have multiple roles, and the effective permission set is the union of all role permissions.
+
+---
+
+## Security Architecture
+
+### Security Middleware Layer
+
+The application implements a defense-in-depth security architecture with controls at every layer:
+
+| Layer | Component | File |
+|-------|-----------|------|
+| **Edge** | WAF / CDN (Cloudflare/AWS WAF) | External |
+| **Frontend** | Next.js `middleware.ts` | `apps/web/src/middleware.ts` |
+| **Gateway** | Next.js API Gateway with HMAC signing | `apps/web/src/app/api/gateway/route.ts` |
+| **Transport** | TLS 1.3 + Helmet + HSTS | `apps/api/src/main.ts` |
+| **Auth** | JwtAuthGuard + CsrfGuard + SessionBindingGuard | `apps/api/src/security/guards/` |
+| **Authz** | PermissionGuard + @Permissions() decorator | `apps/api/src/core/guards/permission.guard.ts` |
+| **Rate Limit** | ThrottlerGuard + per-endpoint limits | `apps/api/src/app.module.ts` |
+| **Validation** | ValidationPipe + SanitizeInterceptor | `apps/api/src/main.ts`, `apps/api/src/security/interceptors/` |
+| **Audit** | AuditInterceptor + RequestLoggingInterceptor | `apps/api/src/security/interceptors/` |
+| **Error** | AllExceptionsFilter (PII-safe) | `apps/api/src/core/exception/exception.filter.ts` |
+| **Data** | Parameterized queries + field-level encryption | TypeORM + PostgreSQL |
+
+### Key Security Decisions
+
+1. **No localStorage tokens** — Access and refresh tokens are stored in httpOnly, sameSite=Strict cookies, preventing XSS token theft.
+2. **Internal request signing** — All requests from Next.js to NestJS are signed with HMAC-SHA256 via `INTERNAL_SIGNING_SECRET`.
+3. **Zero trust network** — NestJS backend is in a private VPC/subnet, only reachable via the Next.js gateway.
+4. **Defense in depth** — Input validation at DTO level, output sanitization, and WAF rules provide layered protection.
+5. **PII-safe logging** — Audit logs redact sensitive fields (passwords, tokens, secrets) automatically.
+6. **Generic error messages** — Error responses never leak stack traces or internal implementation details.
+
+### Security Configuration
+
+All security settings are environment-based and configured via `apps/api/src/security/config/security.config.ts`. Key variables:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `INTERNAL_SIGNING_SECRET` | HMAC secret for gateway-to-backend signing | *(required in production)* |
+| `CSRF_ENABLED` | Enable CSRF protection | `true` |
+| `SESSION_DEVICE_BINDING` | Bind sessions to device/IP | `false` |
+| `RATE_LIMIT_AUTH_LIMIT` | Stricter rate limit for auth endpoints | `10` |
+| `CSP_POLICY` | Content-Security-Policy header value | Strict default |
+| `HSTS_MAX_AGE` | HSTS max-age in seconds | `31536000` |
+| `KILL_SWITCH_ENABLED` | Disable compromised endpoints at runtime | `false` |
+| `LOG_PII_EXCLUDE_FIELDS` | Fields to redact in audit logs | `password,token,secret,...` |
+
+### Security Module Registration
+
+The `SecurityModule` in `apps/api/src/security/security.module.ts` registers all security guards, interceptors, and filters as global providers. It imports `RedisModule` for session binding and `ConfigModule` for environment-based configuration.
+
+### API Gateway Pattern
+
+The Next.js frontend communicates with the NestJS backend exclusively through `/api/gateway/[...path]` routes in `apps/web/src/app/api/gateway/route.ts`. This gateway:
+- Rewrites requests to the internal NestJS API
+- Injects `x-organization-id` from cookies
+- Signs requests with HMAC-SHA256 using `INTERNAL_SIGNING_SECRET`
+- Adds `x-internal-signature` and `x-internal-timestamp` headers

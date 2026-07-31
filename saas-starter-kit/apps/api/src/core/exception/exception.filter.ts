@@ -16,6 +16,23 @@ interface ErrorBody {
   code?: string;
 }
 
+const SENSITIVE_FIELDS = new Set([
+  "password",
+  "passwordhash",
+  "passwordresettoken",
+  "emailverificationtoken",
+  "twofactorsecret",
+  "credentialid",
+  "publickey",
+  "token",
+  "refreshtoken",
+  "accesstoken",
+  "authorization",
+  "cookie",
+  "secret",
+  "key",
+]);
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger("HttpException");
@@ -33,17 +50,26 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status = exception.getStatus();
       const res = exception.getResponse() as ErrorBody | string;
       if (typeof res === "string") {
-        message = res;
+        message = this.sanitizeMessage(res);
       } else {
-        message = Array.isArray(res.message) ? res.message.join(", ") : res.message;
+        const rawMsg = Array.isArray(res.message)
+          ? res.message.join(", ")
+          : res.message;
+        message = this.sanitizeMessage(rawMsg);
         code = res.code;
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
+      message = this.sanitizeMessage(exception.message);
     }
 
     if (status >= 500) {
-      this.logger.error(`${request.method} ${request.url} -> ${status}: ${message}`);
+      this.logger.error(
+        `${request.method} ${request.url} -> ${status}: ${message}`
+      );
+    } else if (status >= 400) {
+      this.logger.warn(
+        `${request.method} ${request.url} -> ${status}: ${message}`
+      );
     }
 
     const body: ApiResponse = {
@@ -54,5 +80,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
     };
 
     response.status(status).json(body);
+  }
+
+  private sanitizeMessage(msg: string): string {
+    const lower = msg.toLowerCase();
+    for (const field of SENSITIVE_FIELDS) {
+      if (lower.includes(field)) {
+        return "An error occurred. Please check your input and try again.";
+      }
+    }
+    return msg;
   }
 }

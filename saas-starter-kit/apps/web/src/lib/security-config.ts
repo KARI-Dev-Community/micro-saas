@@ -1,0 +1,15 @@
+export const SECURITY_CONFIG = {
+  apiBaseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001",
+  gatewayBaseUrl: "/api/gateway",
+  useGateway: process.env.NEXT_PUBLIC_USE_GATEWAY === "true",
+  authCookieName: "saas_access_token",
+  refreshCookieName: "saas_refresh_token",
+  orgCookieName: "saas_org_id",
+  csrfCookieName: "__Host-csrf-token",
+  internalSigningSecret: process.env.INTERNAL_SIGNING_SECRET ?? "",
+  requestTimeoutMs: parseInt(process.env.NEXT_PUBLIC_REQUEST_TIMEOUT_MS ?? "30000", 10),
+  maxRetries: parseInt(process.env.NEXT_PUBLIC_MAX_RETRIES ?? "2", 10),
+  enableSecurityHeaders: process.env.NEXT_PUBLIC_ENABLE_SECURITY_HEADERS !== "false",
+  enableCsrfProtection: process.env.NEXT_PUBLIC_CSRF_ENABLED !== "false",
+  enableInternalSigning: process.env.INTERNAL_SIGNING_SECRET ? true : false,
+} as const;
