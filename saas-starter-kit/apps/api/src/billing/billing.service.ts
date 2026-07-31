@@ -20,11 +20,11 @@ export class BillingService {
   ) {}
 
   async getSubscription(organizationId: string): Promise<Subscription> {
-    let sub = await this.subs.find({ where: { organizationId } });
-    if (!sub.length) {
-      sub = [await this.subs.save(this.subs.create({ organizationId, plan: PlanType.FREE, status: SubscriptionStatus.ACTIVE }))];
+    let sub = await this.subs.findOne({ where: { organizationId } });
+    if (!sub) {
+      sub = await this.subs.save(this.subs.create({ organizationId, plan: PlanType.FREE, status: SubscriptionStatus.ACTIVE }));
     }
-    return sub[0];
+    return sub;
   }
 
   async changePlan(input: {
@@ -38,7 +38,6 @@ export class BillingService {
     couponCode?: string;
     currentPeriodEnd?: Date;
   }): Promise<Subscription> {
-    await this.rbac.assertPermission(input.actorId, input.organizationId, "org.billing.manage");
     const sub = await this.getSubscription(input.organizationId);
     const old = { ...sub };
     if (input.couponCode) {
@@ -67,7 +66,6 @@ export class BillingService {
   }
 
   async cancel(input: { organizationId: string; actorId: string; atPeriodEnd?: boolean }): Promise<Subscription> {
-    await this.rbac.assertPermission(input.actorId, input.organizationId, "org.billing.manage");
     const sub = await this.getSubscription(input.organizationId);
     sub.cancelAtPeriodEnd = input.atPeriodEnd ?? true;
     if (!input.atPeriodEnd) sub.status = SubscriptionStatus.CANCELED;

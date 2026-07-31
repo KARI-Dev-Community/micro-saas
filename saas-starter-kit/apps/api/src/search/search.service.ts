@@ -35,7 +35,7 @@ export class SearchService {
       .where("d.tenantId = :tenantId", { tenantId });
 
     if (p.search) {
-      qb.andWhere("(d.title ILIKE :q OR d.body ILIKE :q)", { q: `%${p.search}%` });
+      qb.andWhere("to_tsvector('english', coalesce(d.title, '') || ' ' || coalesce(d.body, '')) @@ plainto_tsquery('english', :q)", { q: p.search });
     }
     if (p.filters.module) qb.andWhere("d.module = :module", { module: p.filters.module });
     if (p.filters.entityType) qb.andWhere("d.entityType = :entityType", { entityType: p.filters.entityType });

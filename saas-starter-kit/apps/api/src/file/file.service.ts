@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { randomUUID } from "crypto";
-import * as fs from "fs";
+import { promises as fs } from "fs";
 import * as path from "path";
 import { FileEntity } from "./entities/file.entity";
 import { ConfigService } from "@nestjs/config";
@@ -30,10 +30,9 @@ export class FileService {
   }): Promise<FileEntity> {
     await this.rbac.assertPermission(input.ownerId, input.organizationId, "file.upload");
     const key = `${input.organizationId}/${randomUUID()}-${input.fileName}`;
-    // Local storage for the starter kit. Swap with S3/MinIO in production.
     const dir = this.config.get<string>("app.storage.localDir") ?? "./uploads";
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, key), input.buffer);
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, key), input.buffer);
 
     const file = this.files.create({
       ownerId: input.ownerId,
@@ -63,7 +62,7 @@ export class FileService {
     if (!file) throw new NotFoundException();
     const version = file.version + 1;
     const key = `${file.organizationId}/${randomUUID()}-v${version}-${file.fileName}`;
-    fs.writeFileSync(path.join((this.config.get<string>("app.storage.localDir") ?? "./uploads"), key), buffer);
+    await fs.writeFile(path.join((this.config.get<string>("app.storage.localDir") ?? "./uploads"), key), buffer);
     const newFile = this.files.create({
       ownerId: file.ownerId,
       organizationId: file.organizationId,
@@ -86,6 +85,6 @@ export class FileService {
     const file = await this.files.findOne({ where: { id: fileId } });
     if (!file) throw new NotFoundException();
     await this.files.delete(fileId);
-    try { fs.unlinkSync(path.join((this.config.get<string>("app.storage.localDir") ?? "./uploads"), file.storedKey)); } catch { /* ignore missing file */ }
+    try { await fs.unlink(path.join((this.config.get<string>("app.storage.localDir") ?? "./uploads"), file.storedKey)); } catch { /* ignore missing file */ }
   }
 }

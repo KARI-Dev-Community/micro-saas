@@ -67,4 +67,12 @@ export class RbacService {
       throw new ForbiddenException(`Requires one of: ${required.join(", ")}`);
     }
   }
+
+  async isSuperAdmin(userId: string): Promise<boolean> {
+    const m = await this.membershipRepo.findOne({
+      where: { userId, status: MembershipStatus.ACTIVE },
+      select: ["role"],
+    });
+    return m?.role === RoleName.SUPER_ADMIN;
+  }
 }

@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { AuditLog } from "../audit/entities/audit-log.entity";
 import { AccessTokenPayload } from "../auth/services/token.service";
+import { QueueRegistry, QUEUE_NAMES } from "../core/queue/queue.registry";
 
 export interface AuditContext {
   actorId?: string;
@@ -11,12 +12,12 @@ export interface AuditContext {
   userAgent?: string;
 }
 
-// Append-only audit logging. Call from services after a successful mutation.
 @Injectable()
 export class AuditService {
   constructor(
     @InjectRepository(AuditLog)
-    private readonly repo: Repository<AuditLog>
+    private readonly repo: Repository<AuditLog>,
+    private readonly queues: QueueRegistry
   ) {}
 
   async record(
@@ -30,7 +31,7 @@ export class AuditService {
       newValue?: Record<string, unknown>;
     }
   ): Promise<void> {
-    const log = this.repo.create({
+    const payload = {
       module,
       action,
       actorId: ctx.actorId ?? null,
@@ -41,8 +42,12 @@ export class AuditService {
       entityId: extra?.entityId ?? null,
       oldValue: extra?.oldValue ?? null,
       newValue: extra?.newValue ?? null,
-    });
-    await this.repo.save(log);
+    };
+    try {
+      await this.queues.add(QUEUE_NAMES.AUDIT, "save", payload);
+    } catch {
+      await this.repo.save(this.repo.create(payload));
+    }
   }
 
   fromRequest(req: any, user?: AccessTokenPayload): AuditContext {

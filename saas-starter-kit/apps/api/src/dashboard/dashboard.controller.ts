@@ -1,7 +1,6 @@
 import { Controller, Get, UseGuards } from "@nestjs/common";
-import { AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
+import { CurrentOrganization } from "../core/guards/jwt-auth.guard";
 import { PermissionGuard, Permissions } from "../core/guards/permission.guard";
-import { AccessTokenPayload } from "../auth/services/token.service";
 import { DashboardService } from "./dashboard.service";
 import { Permission } from "@shared/enums";
 
@@ -12,20 +11,20 @@ export class DashboardController {
 
   @Get("org")
   @Permissions(Permission.DASHBOARD_READ)
-  async org(@CurrentOrganization() orgId: string, @AuthUser() user: AccessTokenPayload) {
-    return this.dash.orgDashboard(orgId!, user.sub);
+  async org(@CurrentOrganization() orgId: string) {
+    return this.dash.orgDashboard(orgId!);
   }
 
   @Get("revenue")
   @Permissions(Permission.ANALYTICS_REVENUE_READ)
-  async revenue(@CurrentOrganization() orgId: string, @AuthUser() user: AccessTokenPayload) {
-    return this.dash.revenue(orgId!, user.sub);
+  async revenue(@CurrentOrganization() orgId: string) {
+    return this.dash.revenue(orgId!);
   }
 
   @Get("users")
   @Permissions(Permission.ANALYTICS_USER_READ)
-  async users(@CurrentOrganization() orgId: string, @AuthUser() user: AccessTokenPayload) {
-    return this.dash.userAnalytics(orgId!, user.sub);
+  async users(@CurrentOrganization() orgId: string) {
+    return this.dash.userAnalytics(orgId!);
   }
 
   @Get("ai-spend")

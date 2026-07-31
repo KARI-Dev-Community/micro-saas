@@ -23,7 +23,7 @@ export class Role extends BaseEntity {
   @Column({ type: "uuid", nullable: true })
   organizationId?: string | null; // null => platform-wide
 
-  @ManyToMany(() => Permission, (p) => p.roles, { eager: true })
+  @ManyToMany(() => Permission, (p) => p.roles)
   @JoinTable({
     name: "role_permissions",
     joinColumn: { name: "roleId", referencedColumnName: "id" },

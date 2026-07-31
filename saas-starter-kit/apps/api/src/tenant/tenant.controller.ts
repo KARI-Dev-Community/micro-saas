@@ -6,13 +6,10 @@ import {
   Delete,
   Body,
   Param,
-  Query,
   UseGuards,
-  Req,
 } from "@nestjs/common";
-import { Request } from "express";
-import { JwtAuthGuard, AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
-import { PermissionGuard, Permissions, PermissionMode } from "../core/guards/permission.guard";
+import { AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
+import { PermissionGuard, Permissions } from "../core/guards/permission.guard";
 import { AccessTokenPayload } from "../auth/services/token.service";
 import { TenantService } from "./tenant.service";
 import { RoleName } from "@shared/enums";
@@ -49,7 +46,7 @@ export class TenantController {
   }
 
   @Post()
-  async create(@AuthUser() user: AccessTokenPayload, @Body() dto: CreateOrgDto, @Req() req: Request) {
+  async create(@AuthUser() user: AccessTokenPayload, @Body() dto: CreateOrgDto) {
     return this.tenant.createOrganization({ name: dto.name, slug: dto.slug, ownerId: user.sub });
   }
 
@@ -67,8 +64,8 @@ export class TenantController {
 
   @Get(":id/members")
   @Permissions("org.read")
-  async members(@Param("id") id: string, @AuthUser() user: AccessTokenPayload) {
-    return this.tenant.listMembers(id, user.sub);
+  async members(@Param("id") id: string) {
+    return this.tenant.listMembers(id);
   }
 
   @Post(":id/members/invite")
@@ -99,13 +96,13 @@ export class TenantController {
 
   @Post(":id/workspaces")
   @Permissions("org.update")
-  async createWorkspace(@Param("id") id: string, @AuthUser() user: AccessTokenPayload, @Body() dto: CreateWorkspaceDto) {
-    return this.tenant.createWorkspace({ organizationId: id, name: dto.name, actorId: user.sub });
+  async createWorkspace(@Param("id") id: string, @Body() dto: CreateWorkspaceDto) {
+    return this.tenant.createWorkspace({ organizationId: id, name: dto.name });
   }
 
   @Post(":id/teams")
   @Permissions("org.update")
-  async createTeam(@Param("id") id: string, @AuthUser() user: AccessTokenPayload, @Body() dto: CreateTeamDto) {
-    return this.tenant.createTeam({ workspaceId: dto.workspaceId, organizationId: id, name: dto.name, actorId: user.sub });
+  async createTeam(@Param("id") id: string, @Body() dto: CreateTeamDto) {
+    return this.tenant.createTeam({ workspaceId: dto.workspaceId, organizationId: id, name: dto.name });
   }
 }

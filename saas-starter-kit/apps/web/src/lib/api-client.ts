@@ -6,6 +6,8 @@ import { ApiResponse } from "@shared/response";
 
 const TOKEN_KEY = "saas_tokens";
 
+let refreshPromise: Promise<Tokens> | null = null;
+
 export interface Tokens {
   accessToken: string;
   refreshToken: string;
@@ -89,18 +91,27 @@ export async function apiFetch<T = unknown>(
 }
 
 async function refreshTokens(refreshToken: string): Promise<Tokens> {
-  const res = await fetch("/api/auth/refresh", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken }),
-  });
-  if (!res.ok) {
-    const json = await res.json().catch(() => ({} as ApiResponse<Tokens>));
-    const message = (json && (json as any).message) || res.statusText || "Refresh failed";
-    throw new ApiError(message, res.status);
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const res = await fetch("/api/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({} as ApiResponse<Tokens>));
+        const message = (json && (json as any).message) || res.statusText || "Refresh failed";
+        throw new ApiError(message, res.status);
+      }
+      const json = await res.json() as ApiResponse<Tokens>;
+      return json.data as Tokens;
+    })();
   }
-  const json = await res.json() as ApiResponse<Tokens>;
-  return json.data as Tokens;
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
 }
 
 function unwrap<T>(json: ApiResponse<T>): T {

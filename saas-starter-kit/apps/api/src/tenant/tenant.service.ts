@@ -92,7 +92,6 @@ export class TenantService {
     actorId: string,
     patch: Partial<Organization>
   ): Promise<Organization> {
-    await this.rbac.assertPermission(actorId, id, "org.update");
     const org = await this.getOrganization(id);
     const old = { ...org };
     Object.assign(org, patch);
@@ -113,7 +112,6 @@ export class TenantService {
     role: RoleName;
     invitedBy: string;
   }): Promise<Membership> {
-    await this.rbac.assertPermission(input.invitedBy, input.organizationId, "org.members.invite");
     const existing = await this.memberships.findOne({
       where: { organizationId: input.organizationId, user: { email: input.email } as any },
     });
@@ -155,7 +153,6 @@ export class TenantService {
     role: RoleName;
     actorId: string;
   }): Promise<void> {
-    await this.rbac.assertPermission(input.actorId, input.organizationId, "org.members.role");
     await this.memberships.update(input.membershipId, { role: input.role });
     await this.audit.record("org", "member_role_changed", { actorId: input.actorId, organizationId: input.organizationId }, {
       entityType: "membership",
@@ -169,7 +166,6 @@ export class TenantService {
     membershipId: string;
     actorId: string;
   }): Promise<void> {
-    await this.rbac.assertPermission(input.actorId, input.organizationId, "org.members.remove");
     await this.memberships.delete(input.membershipId);
     await this.audit.record("org", "member_removed", { actorId: input.actorId, organizationId: input.organizationId }, {
       entityType: "membership",
@@ -177,8 +173,7 @@ export class TenantService {
     });
   }
 
-  async listMembers(organizationId: string, actorId: string): Promise<Membership[]> {
-    await this.rbac.assertPermission(actorId, organizationId, "org.read");
+  async listMembers(organizationId: string): Promise<Membership[]> {
     return this.memberships.find({
       where: { organizationId },
       relations: ["user", "organization"],
@@ -194,8 +189,7 @@ export class TenantService {
   }
 
   // --- Workspaces ---
-  async createWorkspace(input: { organizationId: string; name: string; actorId: string }): Promise<Workspace> {
-    await this.rbac.assertPermission(input.actorId, input.organizationId, "org.update");
+  async createWorkspace(input: { organizationId: string; name: string }): Promise<Workspace> {
     const ws = this.workspaces.create({
       organizationId: input.organizationId,
       name: input.name,
@@ -213,9 +207,7 @@ export class TenantService {
     workspaceId: string;
     organizationId: string;
     name: string;
-    actorId: string;
   }): Promise<Team> {
-    await this.rbac.assertPermission(input.actorId, input.organizationId, "org.update");
     const team = this.teams.create({
       workspaceId: input.workspaceId,
       organizationId: input.organizationId,

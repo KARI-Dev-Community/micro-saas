@@ -52,9 +52,13 @@ export class PermissionGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    const { role, permissions } = await this.rbac.getUserPermissions(user.sub, organizationId);
+    let permissions = user.perms;
+    if (!permissions) {
+      const resolved = await this.rbac.getUserPermissions(user.sub, organizationId);
+      permissions = resolved.permissions;
+    }
 
-    if (role === ("super_admin" as any)) return true;
+    if (await this.rbac.isSuperAdmin(user.sub)) return true;
 
     const ok = mode
       ? required.every((p) => permissions.includes(p))

@@ -16,9 +16,15 @@ export class RbacSeeder {
   ) {}
 
   async seed(): Promise<void> {
+    const existing = await this.roleRepo.count();
+    if (existing > 0) {
+      this.logger.log("RBAC already seeded");
+      return;
+    }
+
     const allKeys = Object.values(PermEnum);
-    const existing = await this.permRepo.find();
-    const existingKeys = new Set(existing.map((p) => p.key));
+    const existingPerms = await this.permRepo.find();
+    const existingKeys = new Set(existingPerms.map((p) => p.key));
 
     const toCreate = allKeys
       .filter((k) => !existingKeys.has(k))
@@ -36,8 +42,6 @@ export class RbacSeeder {
     const byKey = new Map(perms.map((p) => [p.key, p]));
 
     for (const roleName of Object.values(RoleName)) {
-      const found = await this.roleRepo.findOne({ where: { name: roleName }, relations: ["permissions"] });
-      if (found) continue;
       const keys = ROLE_PERMISSIONS[roleName] ?? [];
       const role = this.roleRepo.create({
         name: roleName,
