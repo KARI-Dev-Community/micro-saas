@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname === "/api/gateway" || pathname.startsWith("/api/gateway/")) {
+  if (pathname.startsWith("/api/")) {
     return handleGatewayRequest(request);
   }
 
@@ -93,45 +93,35 @@ export async function middleware(request: NextRequest) {
 async function handleGatewayRequest(request: NextRequest): Promise<NextResponse> {
   const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
   const path = request.nextUrl.pathname.replace("/api/gateway", "");
-  const targetUrl = `${apiBase}${path}`;
+  const targetUrl = `${apiBase}${path}${request.nextUrl.search}`;
 
-  const accessToken = request.cookies.get(AUTH_COOKIE_NAME)?.value;
-  const organizationId = request.cookies.get("saas_org_id")?.value;
+  const accessToken =
+    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
+    request.cookies.get(AUTH_COOKIE_NAME)?.value;
+  const organizationId =
+    request.headers.get("x-organization-id") ??
+    request.cookies.get("saas_org_id")?.value;
 
-  const headers = new Headers();
-  headers.set("Content-Type", "application/json");
-  headers.set("x-organization-id", organizationId ?? "");
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (organizationId) headers["x-organization-id"] = organizationId;
+  if (accessToken) headers["authorization"] = `Bearer ${accessToken}`;
 
-  if (accessToken) {
-    headers.set("Authorization", `Bearer ${accessToken}`);
-  }
+  const isBodyMethod = request.method !== "GET" && request.method !== "HEAD";
+  const body = isBodyMethod ? await request.text() : undefined;
 
-  const internalSecret = process.env.INTERNAL_SIGNING_SECRET;
-  if (internalSecret) {
-    const timestamp = Date.now().toString();
-    const body =
-      request.method !== "GET" && request.method !== "HEAD"
-        ? await request.text()
-        : "";
-    const message = `${request.method}:${path}:${timestamp}:${body ?? ""}`;
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(internalSecret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-    const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
-    const signature = Array.from(new Uint8Array(signatureBuffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-    headers.set("x-internal-signature", signature);
-    headers.set("x-internal-timestamp", timestamp);
-  }
-
-  return NextResponse.rewrite(new URL(targetUrl), {
+  const response = await fetch(targetUrl, {
+    method: request.method,
     headers,
+    body,
+  });
+
+  const responseHeaders = new Headers(response.headers);
+  responseHeaders.set("x-gateway-proxy", "nextjs");
+
+  return new NextResponse(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: responseHeaders,
   });
 }
 

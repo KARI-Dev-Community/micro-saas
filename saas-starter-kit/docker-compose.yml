@@ -57,7 +57,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: ["sh", "-c", "node /app/node_modules/typeorm/cli.js migration:run -d dist/apps/api/src/config/typeorm-cli.js && node dist/apps/api/src/main.js"]
+    command: ["sh", "-c", "node /app/node_modules/typeorm/cli.js migration:run -d dist/config/typeorm-cli.js && node dist/main.js"]
 
   web:
     build:

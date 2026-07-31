@@ -14,9 +14,10 @@ import { SessionBindingGuard } from "./guards/session-binding.guard";
 import { SecurityHeadersInterceptor } from "./interceptors/security-headers.interceptor";
 import { AuditInterceptor } from "./interceptors/audit.interceptor";
 import { SanitizeInterceptor } from "./interceptors/sanitize.interceptor";
+import { TenantModule } from "../tenant/tenant.module";
 
 @Module({
-  imports: [ConfigModule, RedisModule],
+  imports: [ConfigModule, RedisModule, TenantModule],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
@@ -31,13 +32,6 @@ import { SanitizeInterceptor } from "./interceptors/sanitize.interceptor";
     { provide: APP_INTERCEPTOR, useClass: SanitizeInterceptor },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
-  exports: [
-    CsrfGuard,
-    InternalRequestGuard,
-    SessionBindingGuard,
-    SecurityHeadersInterceptor,
-    AuditInterceptor,
-    SanitizeInterceptor,
-  ],
+  exports: [],
 })
 export class SecurityModule {}

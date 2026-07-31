@@ -29,14 +29,18 @@ export async function OPTIONS(request: NextRequest) {
 
 async function proxyRequest(request: NextRequest): Promise<NextResponse> {
   const path = request.nextUrl.pathname.replace("/api/gateway", "");
-  const targetUrl = `${API_BASE}${path}`;
+  const targetUrl = `${API_BASE}${path}${request.nextUrl.search}`;
 
-  const accessToken = request.cookies.get("saas_access_token")?.value;
-  const organizationId = request.cookies.get("saas_org_id")?.value;
+  const accessToken =
+    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
+    request.cookies.get("saas_access_token")?.value;
+  const organizationId =
+    request.headers.get("x-organization-id") ??
+    request.cookies.get("saas_org_id")?.value;
 
   const headers = new Headers();
   headers.set("Content-Type", "application/json");
-  headers.set("x-organization-id", organizationId ?? "");
+  if (organizationId) headers.set("x-organization-id", organizationId);
 
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);

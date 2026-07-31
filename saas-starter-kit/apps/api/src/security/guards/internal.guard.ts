@@ -16,6 +16,11 @@ export class InternalRequestGuard implements CanActivate {
   private readonly logger = new Logger("InternalGuard");
 
   canActivate(context: ExecutionContext): boolean {
+    const secret = process.env.INTERNAL_SIGNING_SECRET;
+    if (!secret) {
+      return true;
+    }
+
     const req = context.switchToHttp().getRequest<Request>();
 
     const signature = req.headers[INTERNAL_SIGNATURE_HEADER] as string | undefined;
@@ -23,12 +28,6 @@ export class InternalRequestGuard implements CanActivate {
 
     if (!signature || !timestamp) {
       throw new UnauthorizedException("Missing internal request signature");
-    }
-
-    const secret = process.env.INTERNAL_SIGNING_SECRET;
-    if (!secret) {
-      this.logger.warn("INTERNAL_SIGNING_SECRET not set; internal guard disabled");
-      return true;
     }
 
     const now = Date.now();

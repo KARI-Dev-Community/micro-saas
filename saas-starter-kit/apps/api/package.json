@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "nest build",
-    "start": "node dist/main.js",
+    "start": "node dist/apps/api/src/main.js",
     "dev": "nest start --watch",
     "migrate": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run -d src/config/typeorm-cli.ts",
     "migration:generate": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d src/config/typeorm-cli.ts",
