@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { api, ApiError } from "@/lib/api-client";
+import { api, ApiError, storeTokens } from "@/lib/api-client";
 import { useAuthStore } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,9 @@ export function LoginForm() {
         return;
       }
       const r = res as any;
-      setSession({ accessToken: r.accessToken, refreshToken: r.refreshToken, expiresIn: r.expiresIn }, { id: r.user.id, email: r.user.email }, []);
+      const tokenData = { accessToken: r.accessToken, refreshToken: r.refreshToken, expiresIn: r.expiresIn };
+      storeTokens(tokenData);
+      setSession(tokenData, { id: r.user.id, email: r.user.email }, []);
       router.push("/dashboard");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Login failed");

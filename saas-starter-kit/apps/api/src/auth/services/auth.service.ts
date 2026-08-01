@@ -12,13 +12,14 @@ import * as bcrypt from "bcrypt";
 import { User } from "../entities/user.entity";
 import { UserProfile } from "../entities/user-profile.entity";
 import { Session } from "../entities/session.entity";
+import { Membership } from "../../tenant/entities/membership.entity";
 import { TokenService, TokenPair } from "./token.service";
 import { EmailService } from "../../email/email.service";
 import { AuditService } from "../../audit/audit.service";
 import { RedisService } from "../../core/redis/redis.service";
 import * as jwt from "jsonwebtoken";
 import { ConfigService } from "@nestjs/config";
-import { AuthProvider, UserStatus, TwoFactorMethod } from "@shared/enums";
+import { AuthProvider, UserStatus, TwoFactorMethod, MembershipStatus } from "@shared/enums";
 
 export interface RegisterInput {
   email: string;
@@ -33,6 +34,7 @@ export class AuthService {
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(UserProfile) private readonly profiles: Repository<UserProfile>,
     @InjectRepository(Session) private readonly sessions: Repository<Session>,
+    @InjectRepository(Membership) private readonly memberships: Repository<Membership>,
     private readonly token: TokenService,
     private readonly email: EmailService,
     private readonly audit: AuditService,
@@ -118,7 +120,12 @@ export class AuthService {
       // Require a 2FA step before issuing tokens. Return a challenge marker.
       throw new TwoFactorRequiredError(user.id);
     }
-    const tokens = await this.issueTokens(user, ctx);
+    const membership = await this.memberships.findOne({
+      where: { userId: user.id, status: MembershipStatus.ACTIVE },
+      select: ["organizationId"],
+    });
+    const orgId = membership?.organizationId;
+    const tokens = await this.issueTokens(user, ctx, orgId);
     await this.audit.record("auth", "login", { actorId: user.id, ipAddress: ctx.ip, userAgent: ctx.ua }, { entityType: "user", entityId: user.id });
     return { ...tokens, user };
   }
@@ -164,7 +171,12 @@ export class AuthService {
     const user = await this.users.findOne({ where: { id: decoded.sub } });
     if (!user) throw new UnauthorizedError();
     await this.sessions.update({ tokenId: decoded.jti }, { current: false });
-    return this.issueTokens(user, { ip: session.ipAddress ?? "0.0.0.0", ua: session.userAgent ?? "" }, user.id);
+    const membership = await this.memberships.findOne({
+      where: { userId: user.id, status: MembershipStatus.ACTIVE },
+      select: ["organizationId"],
+    });
+    const organizationId = membership?.organizationId;
+    return this.issueTokens(user, { ip: session.ipAddress ?? "0.0.0.0", ua: session.userAgent ?? "" }, organizationId);
   }
 
   async logout(refreshToken: string): Promise<void> {

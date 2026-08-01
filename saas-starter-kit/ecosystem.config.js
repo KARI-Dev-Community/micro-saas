@@ -7,7 +7,7 @@ module.exports = {
       instances: "max",
       exec_mode: "cluster",
       env: {
-        NODE_ENV: "production",
+        NODE_ENV: "development",
         PORT: 3001,
         API_PREFIX: "api",
         FRONTEND_URL: "http://localhost:3000",
@@ -65,7 +65,7 @@ module.exports = {
       instances: 1,
       exec_mode: "fork",
       env: {
-        NODE_ENV: "production",
+        NODE_ENV: "development",
         PORT: 3000,
         NEXT_PUBLIC_API_URL: "http://localhost:3001",
       },

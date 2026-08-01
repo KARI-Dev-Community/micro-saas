@@ -35,7 +35,7 @@ export class GoogleController {
 
   @Get("callback")
   @Public()
-  async callback(@Query("code") code: string, @Res() res: Response) {
+  async callback(@Query("code") code: string, @Res({ passthrough: true }) res: Response) {
     const { id_token, email, name } = await this.exchange(code);
     let user = await this.auth.findByEmail(email);
     if (!user) {
@@ -49,9 +49,22 @@ export class GoogleController {
       await this.users.save(user);
     }
     const tokens = await this.auth.issueTokens(user, { ip: "0.0.0.0", ua: "" });
-    return res.redirect(
-      `${this.config.get("app.frontendUrl")}/oauth/callback?access=${tokens.accessToken}&refresh=${tokens.refreshToken}`
-    );
+    const isProd = this.config.get("app.env") === "production";
+    const cookieBase = {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: isProd,
+      path: "/",
+    } as any;
+    res.cookie("saas_access_token", tokens.accessToken, {
+      ...cookieBase,
+      maxAge: tokens.expiresIn * 1000,
+    });
+    res.cookie("saas_refresh_token", tokens.refreshToken, {
+      ...cookieBase,
+      maxAge: 30 * 24 * 3600 * 1000,
+    });
+    return res.redirect(`${this.config.get("app.frontendUrl")}/oauth/callback`);
   }
 
   private async exchange(code: string): Promise<{ id_token: string; email: string; name: string }> {

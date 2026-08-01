@@ -1,12 +1,8 @@
-// Centralized API client. Uses the standard response envelope:
-// { success, message, data, meta }. Auth tokens are stored in localStorage
-// and attached as Bearer; the active organization id is sent via the
-// `x-organization-id` header for tenant-scoped requests.
 import { ApiResponse } from "@shared/response";
 
 const TOKEN_KEY = "saas_tokens";
 
-let refreshPromise: Promise<Tokens> | null = null;
+let refreshPromise: Promise<any> | null = null;
 
 export interface Tokens {
   accessToken: string;
@@ -15,15 +11,26 @@ export interface Tokens {
 }
 
 export function storeTokens(tokens: Tokens) {
-  localStorage.setItem(TOKEN_KEY, JSON.stringify(tokens));
+  if (typeof window !== "undefined") {
+    localStorage.setItem(TOKEN_KEY, JSON.stringify(tokens));
+  }
 }
 export function getTokens(): Tokens | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(TOKEN_KEY);
-  return raw ? JSON.parse(raw) : null;
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as Tokens;
+  } catch {
+    return null;
+  }
 }
 export function clearTokens() {
-  localStorage.removeItem(TOKEN_KEY);
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+  document.cookie = "saas_access_token=; Max-Age=0; path=/";
+  document.cookie = "saas_refresh_token=; Max-Age=0; path=/";
 }
 
 export interface RequestOptions {
@@ -47,9 +54,9 @@ export async function apiFetch<T = unknown>(
   path: string,
   opts: RequestOptions = {}
 ): Promise<T> {
-  const tokens = getTokens();
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (tokens) headers["Authorization"] = `Bearer ${tokens.accessToken}`;
+  const tokens = getTokens();
+  if (tokens?.accessToken) headers["Authorization"] = `Bearer ${tokens.accessToken}`;
   if (opts.organizationId) headers["x-organization-id"] = opts.organizationId;
 
   let url = path;
@@ -66,15 +73,20 @@ export async function apiFetch<T = unknown>(
     method: opts.method ?? "GET",
     headers,
     body: opts.body ? JSON.stringify(opts.body) : undefined,
+    credentials: "include",
   });
 
   if (!res.ok) {
-    if (res.status === 401 && tokens?.refreshToken) {
+    if (res.status === 401) {
       try {
-        const refreshed = await refreshTokens(tokens.refreshToken);
-        storeTokens(refreshed);
-        headers["Authorization"] = `Bearer ${refreshed.accessToken}`;
-        const retry = await fetch(url, { method: opts.method ?? "GET", headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+        await refreshTokens();
+        const retry = await fetch(url, { method: opts.method ?? "GET", headers, body: opts.body ? JSON.stringify(opts.body) : undefined, credentials: "include" });
+        if (!retry.ok) {
+          const json = await retry.json().catch(() => ({} as ApiResponse<T>));
+          const message = (json && (json as any).message) || retry.statusText || "Request failed";
+          const code = (json && (json as any).data && (json as any).data.code);
+          throw new ApiError(message, retry.status, code);
+        }
         return unwrap<T>(await retry.json());
       } catch {
         clearTokens();
@@ -90,25 +102,28 @@ export async function apiFetch<T = unknown>(
   return unwrap<T>(await res.json());
 }
 
-async function refreshTokens(refreshToken: string): Promise<Tokens> {
-  if (!refreshPromise) {
-    refreshPromise = (async () => {
-      const res = await fetch("/api/auth/refresh", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({} as ApiResponse<Tokens>));
-        const message = (json && (json as any).message) || res.statusText || "Refresh failed";
-        throw new ApiError(message, res.status);
-      }
-      const json = await res.json() as ApiResponse<Tokens>;
-      return json.data as Tokens;
-    })();
-  }
+async function refreshTokens(): Promise<void> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    const tokens = getTokens();
+    if (!tokens?.refreshToken) {
+      throw new ApiError("No refresh token", 401);
+    }
+    const res = await fetch("/api/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+      credentials: "include",
+    });
+    if (!res.ok) {
+      throw new ApiError("Refresh failed", res.status);
+    }
+    const json = await res.json().catch(() => ({} as ApiResponse<Tokens>));
+    const newTokens = unwrap<Tokens>(json);
+    storeTokens(newTokens);
+  })();
   try {
-    return await refreshPromise;
+    await refreshPromise;
   } finally {
     refreshPromise = null;
   }

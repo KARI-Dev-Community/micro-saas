@@ -9,6 +9,7 @@ import {
   Req,
   Res,
   Inject,
+  UnauthorizedException,
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { AuthService } from "./services/auth.service";
@@ -18,7 +19,6 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   ChangePasswordDto,
-  RefreshDto,
 } from "./dto/auth.dto";
 import { AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
 import { AccessTokenPayload } from "./services/token.service";
@@ -39,6 +39,24 @@ export class AuthController {
     };
   }
 
+  private setAuthCookies(res: Response, tokens: { accessToken: string; refreshToken: string; expiresIn: number }) {
+    const isProd = this.config.get("app.env") === "production";
+    const cookieBase = {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: isProd,
+      path: "/",
+    } as any;
+    res.cookie("saas_access_token", tokens.accessToken, {
+      ...cookieBase,
+      maxAge: tokens.expiresIn * 1000,
+    });
+    res.cookie("saas_refresh_token", tokens.refreshToken, {
+      ...cookieBase,
+      maxAge: 30 * 24 * 3600 * 1000,
+    });
+  }
+
   @Post("register")
   @Public()
   async register(@Body() dto: RegisterDto, @Req() req: Request) {
@@ -49,10 +67,11 @@ export class AuthController {
   @Post("login")
   @HttpCode(HttpStatus.OK)
   @Public()
-  async login(@Body() dto: LoginDto, @Req() req: Request) {
+  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
       const result = await this.auth.login(dto.email, dto.password, this.clientCtx(req));
-      return result;
+      this.setAuthCookies(res, result);
+      return { accessToken: result.accessToken, refreshToken: result.refreshToken, expiresIn: result.expiresIn, user: result.user };
     } catch (e: any) {
       if (e instanceof Error && "userId" in e && e.message === "Two-factor authentication required") {
         return { twoFactorRequired: true, userId: (e as any).userId };
@@ -63,20 +82,29 @@ export class AuthController {
 
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body() dto: RefreshDto) {
-    return this.auth.refresh(dto.refreshToken);
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = parseCookie(req.headers.cookie, "saas_refresh_token");
+    if (!refreshToken) throw new UnauthorizedException();
+    const result = await this.auth.refresh(refreshToken);
+    this.setAuthCookies(res, result);
+    return { accessToken: result.accessToken, refreshToken: result.refreshToken, expiresIn: result.expiresIn };
   }
 
   @Post("logout")
   @HttpCode(HttpStatus.OK)
-  async logout(@Body() dto: RefreshDto) {
-    await this.auth.logout(dto.refreshToken);
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = parseCookie(req.headers.cookie, "saas_refresh_token");
+    if (refreshToken) await this.auth.logout(refreshToken);
+    res.clearCookie("saas_access_token", { path: "/" });
+    res.clearCookie("saas_refresh_token", { path: "/" });
     return { loggedOut: true };
   }
 
   @Post("logout-all")
-  async logoutAll(@AuthUser() user: AccessTokenPayload) {
+  async logoutAll(@AuthUser() user: AccessTokenPayload, @Res({ passthrough: true }) res: Response) {
     await this.auth.logoutAll(user.sub);
+    res.clearCookie("saas_access_token", { path: "/" });
+    res.clearCookie("saas_refresh_token", { path: "/" });
     return { loggedOut: true };
   }
 
@@ -126,4 +154,10 @@ export class AuthController {
     }
     return { id: user.sub, email: user.email, organizationId: orgId || user.organizationId, permissions };
   }
+}
+
+function parseCookie(cookieHeader: string | undefined, name: string): string | null {
+  if (!cookieHeader) return null;
+  const m = cookieHeader.match(new RegExp("(?:^|;\\s*)" + name + "=([^;]*)"));
+  return m ? decodeURIComponent(m[1]) : null;
 }
