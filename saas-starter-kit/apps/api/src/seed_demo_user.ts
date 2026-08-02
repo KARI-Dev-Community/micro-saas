@@ -25,39 +25,38 @@ async function main() {
     );
   }
 
+  const existingUser = await userRepo.findOne({ where: { email: "demo.saas@kari.com" } });
+  if (existingUser) {
+    await memRepo.delete({ userId: existingUser.id });
+    await userRepo.remove(existingUser);
+    console.log("Removed existing demo user and memberships");
+  }
+
   const passwordHash = await bcrypt.hash("demo123", 10);
 
-  await userRepo.upsert(
-    {
+  const user = await userRepo.save(
+    userRepo.create({
       email: "demo.saas@kari.com",
       passwordHash,
       status: UserStatus.ACTIVE,
-      updatedAt: new Date(),
       createdAt: new Date(),
-    },
-    ["email"],
+      updatedAt: new Date(),
+    }),
   );
 
-  const user = await userRepo.findOneOrFail({ where: { email: "demo.saas@kari.com" } });
-
-  const existingMembership = await memRepo.findOne({
-    where: { userId: user.id, organizationId: organization.id },
-  });
-  if (!existingMembership) {
-    await memRepo.save(
-      memRepo.create({
-        userId: user.id,
-        organizationId: organization.id,
-        role: RoleName.SUPER_ADMIN,
-        status: MembershipStatus.ACTIVE,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }),
-    );
-  }
+  await memRepo.save(
+    memRepo.create({
+      userId: user.id,
+      organizationId: organization.id,
+      role: RoleName.SUPER_ADMIN,
+      status: MembershipStatus.ACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }),
+  );
 
   await ds.destroy();
-  console.log("Demo user and membership seeded successfully");
+  console.log("Demo user re-seeded as super admin successfully");
 }
 
 main().catch(err => {
