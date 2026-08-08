@@ -106,6 +106,9 @@ async function handleGatewayRequest(request: NextRequest): Promise<NextResponse>
   if (organizationId) headers["x-organization-id"] = organizationId;
   if (accessToken) headers["authorization"] = `Bearer ${accessToken}`;
 
+  const cookieHeader = request.headers.get("cookie");
+  if (cookieHeader) headers["cookie"] = cookieHeader;
+
   const isBodyMethod = request.method !== "GET" && request.method !== "HEAD";
   const body = isBodyMethod ? await request.text() : undefined;
 

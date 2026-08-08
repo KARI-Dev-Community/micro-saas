@@ -19,6 +19,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   ChangePasswordDto,
+  RefreshDto,
 } from "./dto/auth.dto";
 import { AuthUser, CurrentOrganization } from "../core/guards/jwt-auth.guard";
 import { AccessTokenPayload } from "./services/token.service";
@@ -81,9 +82,14 @@ export class AuthController {
   }
 
   @Post("refresh")
+  @Public()
   @HttpCode(HttpStatus.OK)
-  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const refreshToken = parseCookie(req.headers.cookie, "saas_refresh_token");
+  async refresh(
+    @Body() dto: RefreshDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const refreshToken = dto?.refreshToken || parseCookie(req.headers.cookie, "saas_refresh_token");
     if (!refreshToken) throw new UnauthorizedException();
     const result = await this.auth.refresh(refreshToken);
     this.setAuthCookies(res, result);
@@ -91,9 +97,14 @@ export class AuthController {
   }
 
   @Post("logout")
+  @Public()
   @HttpCode(HttpStatus.OK)
-  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const refreshToken = parseCookie(req.headers.cookie, "saas_refresh_token");
+  async logout(
+    @Body() dto: RefreshDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const refreshToken = dto?.refreshToken || parseCookie(req.headers.cookie, "saas_refresh_token");
     if (refreshToken) await this.auth.logout(refreshToken);
     res.clearCookie("saas_access_token", { path: "/" });
     res.clearCookie("saas_refresh_token", { path: "/" });
