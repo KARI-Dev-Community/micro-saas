@@ -24,7 +24,8 @@
     "pm2:save": "pm2 save",
     "deploy": "npm run build && npm run migrate && npm run pm2:start && npm run pm2:save && npm run pm2:status",
     "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "test": "playwright test"
   },
   "engines": {
     "node": ">=20"
@@ -32,6 +33,7 @@
   "devDependencies": {
     "@nestjs/cli": "^10.4.0",
     "@nestjs/schematics": "^10.1.0",
+    "@playwright/test": "^1.62.1",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^8.57.0",
